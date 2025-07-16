@@ -12,7 +12,7 @@ import logging
 import plotly.io as pio
 from functools import lru_cache
 from datetime import datetime
-from utils.vanna_text2sql_tool import handle_sql
+from extensions.utils.vanna_text2sql_tool import handle_sql
 
 class Config:
     def __init__(self, supplier):
