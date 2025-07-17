@@ -36,6 +36,7 @@ import AccessControl from '@/app/components/app/app-access-control'
 import { AccessMode } from '@/models/access-control'
 import { useGlobalPublicStore } from '@/context/global-public-context'
 import { formatTime } from '@/utils/time'
+import { useGetUserCanAccessApp } from '@/service/access-control'
 
 export type AppCardProps = {
   app: App
@@ -87,6 +88,7 @@ const AppCard = ({ app, onRefresh }: AppCardProps) => {
     icon_background,
     description,
     use_icon_as_answer_icon,
+    max_active_requests,
   }) => {
     try {
       await updateAppInfo({
@@ -97,6 +99,7 @@ const AppCard = ({ app, onRefresh }: AppCardProps) => {
         icon_background,
         description,
         use_icon_as_answer_icon,
+        max_active_requests,
       })
       setShowEditModal(false)
       notify({
@@ -190,6 +193,7 @@ const AppCard = ({ app, onRefresh }: AppCardProps) => {
   }, [onRefresh, mutateApps, setShowAccessControl])
 
   const Operations = (props: HtmlContentProps) => {
+    const { data: userCanAccessApp, isLoading: isGettingUserCanAccessApp } = useGetUserCanAccessApp({ appId: app?.id, enabled: (!!props?.open && systemFeatures.webapp_auth.enabled) })
     const onMouseLeave = async () => {
       props.onClose?.()
     }
@@ -267,10 +271,14 @@ const AppCard = ({ app, onRefresh }: AppCardProps) => {
             </button>
           </>
         )}
-        <Divider className="my-1" />
-        <button className='mx-1 flex h-8 cursor-pointer items-center gap-2 rounded-lg px-3 hover:bg-state-base-hover' onClick={onClickInstalledApp}>
-          <span className='system-sm-regular text-text-secondary'>{t('app.openInExplore')}</span>
-        </button>
+        {
+          (isGettingUserCanAccessApp || !userCanAccessApp?.result) ? null : <>
+            <Divider className="my-1" />
+            <button className='mx-1 flex h-8 cursor-pointer items-center gap-2 rounded-lg px-3 hover:bg-state-base-hover' onClick={onClickInstalledApp}>
+              <span className='system-sm-regular text-text-secondary'>{t('app.openInExplore')}</span>
+            </button>
+          </>
+        }
         <Divider className="my-1" />
         {
           systemFeatures.webapp_auth.enabled && isCurrentWorkspaceEditor && <>
@@ -333,7 +341,7 @@ const AppCard = ({ app, onRefresh }: AppCardProps) => {
             <div className='flex items-center gap-1 text-[10px] font-medium leading-[18px] text-text-tertiary'>
               <div className='truncate' title={app.author_name}>{app.author_name}</div>
               <div>·</div>
-              <div className='truncate'>{EditTimeText}</div>
+              <div className='truncate' title={EditTimeText}>{EditTimeText}</div>
             </div>
           </div>
           <div className='flex h-5 w-5 shrink-0 items-center justify-center'>
@@ -426,6 +434,7 @@ const AppCard = ({ app, onRefresh }: AppCardProps) => {
           appDescription={app.description}
           appMode={app.mode}
           appUseIconAsAnswerIcon={app.use_icon_as_answer_icon}
+          max_active_requests={app.max_active_requests ?? null}
           show={showEditModal}
           onConfirm={onEdit}
           onHide={() => setShowEditModal(false)}

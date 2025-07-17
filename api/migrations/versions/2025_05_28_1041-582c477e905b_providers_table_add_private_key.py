@@ -1,7 +1,7 @@
 """providers table add private_key
 
 Revision ID: 582c477e905b
-Revises: 8e00c75b3907
+Revises: d20049ed0af6
 Create Date: 2025-05-28 10:41:31.662951
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '582c477e905b'
-down_revision = '8e00c75b3907'
+down_revision = 'd20049ed0af6'
 branch_labels = None
 depends_on = None
 

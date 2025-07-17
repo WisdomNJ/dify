@@ -24,6 +24,7 @@ from .vdb.couchbase_config import CouchbaseConfig
 from .vdb.elasticsearch_config import ElasticsearchConfig
 from .vdb.huawei_cloud_config import HuaweiCloudConfig
 from .vdb.lindorm_config import LindormConfig
+from .vdb.matrixone_config import MatrixoneConfig
 from .vdb.milvus_config import MilvusConfig
 from .vdb.myscale_config import MyScaleConfig
 from .vdb.oceanbase_config import OceanBaseVectorConfig
@@ -162,6 +163,11 @@ class DatabaseConfig(BaseSettings):
         default=3600,
     )
 
+    SQLALCHEMY_POOL_USE_LIFO: bool = Field(
+        description="If True, SQLAlchemy will use last-in-first-out way to retrieve connections from pool.",
+        default=False,
+    )
+
     SQLALCHEMY_POOL_PRE_PING: bool = Field(
         description="If True, enables connection pool pre-ping feature to check connections.",
         default=False,
@@ -199,6 +205,7 @@ class DatabaseConfig(BaseSettings):
             "pool_recycle": self.SQLALCHEMY_POOL_RECYCLE,
             "pool_pre_ping": self.SQLALCHEMY_POOL_PRE_PING,
             "connect_args": connect_args,
+            "pool_use_lifo": self.SQLALCHEMY_POOL_USE_LIFO,
         }
 
 
@@ -220,6 +227,11 @@ class CeleryConfig(DatabaseConfig):
 
     CELERY_SENTINEL_MASTER_NAME: Optional[str] = Field(
         description="Name of the Redis Sentinel master.",
+        default=None,
+    )
+
+    CELERY_SENTINEL_PASSWORD: Optional[str] = Field(
+        description="Password of the Redis Sentinel master.",
         default=None,
     )
 
@@ -325,5 +337,6 @@ class MiddlewareConfig(
     TableStoreConfig,
     DatasetQueueMonitorConfig,
     VannaConfig,
+    MatrixoneConfig,
 ):
     pass
