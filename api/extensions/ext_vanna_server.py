@@ -12,6 +12,8 @@ import logging
 import plotly.io as pio
 from functools import lru_cache
 from datetime import datetime
+from extensions.utils.vanna_text2sql_tool import handle_sql
+
 class Config:
     def __init__(self, supplier):
         self.embedding_supplier = "SiliconFlow"
@@ -171,6 +173,8 @@ def init_app(app: DifyApp):
             return jsonify({"type": "error", "error": "No question provided"})
         server = get_vn_instance(supplier)
         sql = server.generate_sql(question=question)
+        # 对生成的SQL做处理
+        sql = handle_sql(sql=sql)
         return jsonify(
             {
                 "sql": sql
