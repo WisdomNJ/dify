@@ -9,7 +9,7 @@ from core.workflow.nodes.enums import NodeType
 from core.workflow.nodes.llm import LLMNode
 from extensions.utils.vanna_text2sql import VannaServer
 from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
-
+from extensions.utils.vanna_text2sql_tool import handle_sql
 from .entities import VannaNodeData
 
 
@@ -87,7 +87,8 @@ class VannaNode(LLMNode):
 
         # 提问获取sql和结果
         sql = cache_data.generate_sql(query)
-
+        # 对生成的SQL做处理
+        sql = handle_sql(sql=sql)
         return NodeRunResult(
             status=WorkflowNodeExecutionStatus.SUCCEEDED,
             outputs={"output": sql}
