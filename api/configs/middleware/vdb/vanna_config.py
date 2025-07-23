@@ -28,6 +28,11 @@ class VannaConfig(BaseSettings):
         default="deepseek",
     )
 
+    VANNA_OLLAMA_HOST: Optional[str] = Field(
+        description="vanna ollama地址",
+        default="",
+    )
+
     VANNA_MODEL: str = Field(
         description="vanna 语言模型版本，默认是deepseek-coder",
         default="deepseek-coder",

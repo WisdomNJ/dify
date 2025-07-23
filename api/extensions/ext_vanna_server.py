@@ -31,6 +31,7 @@ class Config:
         # self.model = 'qwen2:7b'
         self.llm_type = dify_config.VANNA_LLM_TYPE
         self.model = dify_config.VANNA_MODEL
+        self.ollama_host = dify_config.VANNA_OLLAMA_HOST
         self.api_key = dify_config.VANNA_API_KEY
         self.sql_type = dify_config.VANNA_SQL_TYPE
         self.sql_config = {
