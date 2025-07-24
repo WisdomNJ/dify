@@ -6,10 +6,10 @@ from vanna.deepseek import DeepSeekChat
 from extensions.utils.rewrite_ask import ask
 from dotenv import load_dotenv
 from vanna.milvus import Milvus_VectorStore
-from pymilvus import MilvusClient,model
+from pymilvus import DataType, MilvusClient,model
 from collections import defaultdict
-
-
+from numpy import linalg as LA
+from openai import OpenAI
 load_dotenv()
 # 设置显示后端为浏览器
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
@@ -101,7 +101,6 @@ class VannaServer:
             chat_llm = QianWenAI_Chat
         elif llm_type == "deepseek":
             chat_llm = DeepSeekChat
-
         MyVanna = make_vanna_class(ChatClass=chat_llm)
         vn = MyVanna(config)
         if sql_type == "postgres":
@@ -122,8 +121,7 @@ class VannaServer:
         # If you like the plan, then uncomment this and run it to train
         self.vn.train(plan=plan)
 
-    # 更新建表DDL语句
-    def refresh_create_table_ddl_train(self):
+    def get_create_table_sql(self):
         sql = """
 SELECT
     'CREATE TABLE '
@@ -245,6 +243,126 @@ LEFT JOIN (
 ) FK ON FK.source_table = C.TABLE_NAME
 WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
 """
+        return sql
+
+    def get_create_table_sql2(self):
+        sql = """
+SELECT
+    'T:'
+    || C.TABLE_NAME
+		|| '['
+		||
+		G.DESCRIPTION
+		|| ']'
+    || ' ('
+    || C.COLUMN_NAMES
+    || ')'
+		AS DDL,
+    C.TABLE_NAME
+FROM (
+    SELECT
+        COL.TABLE_NAME,
+        COL.TABLE_SCHEMA,
+        STRING_AGG(
+            COL.COLUMN_NAME
+            || ':'
+						|| case when COL.DATA_TYPE = 'character varying' then 's'
+							 when COL.DATA_TYPE = 'numeric' then 'i'
+							 when COL.DATA_TYPE = 'timestamp without time zone' then 'dt'
+							 else 's'
+							 end
+						|| ' ['
+						|| PGD.DESCRIPTION
+						|| ']',
+            ','
+        ) AS COLUMN_NAMES
+    FROM
+        PG_CATALOG.PG_STATIO_ALL_TABLES AS ST
+    INNER JOIN
+        PG_CATALOG.PG_DESCRIPTION AS PGD
+        ON PGD.OBJOID = ST.RELID
+    INNER JOIN
+        INFORMATION_SCHEMA.COLUMNS AS COL
+        ON (
+            COL.TABLE_SCHEMA = ST.SCHEMANAME
+            AND COL.TABLE_NAME = ST.RELNAME
+            AND COL.ORDINAL_POSITION = PGD.OBJSUBID
+        )
+    WHERE
+        COL.TABLE_SCHEMA = 'public'
+    GROUP BY
+        COL.TABLE_SCHEMA,
+        COL.TABLE_NAME
+) C
+LEFT JOIN (
+    SELECT
+        N.NSPNAME AS SCHEMA_NAME,
+        C.RELNAME AS TABLE_NAME,
+        D.DESCRIPTION
+    FROM
+        PG_CATALOG.PG_DESCRIPTION D
+    JOIN
+        PG_CATALOG.PG_CLASS C
+        ON C.OID = D.OBJOID
+    JOIN
+        PG_CATALOG.PG_NAMESPACE N
+        ON N.OID = C.RELNAMESPACE
+    WHERE
+        C.RELKIND = 'r'
+        AND D.OBJSUBID = 0
+) G
+ON G.SCHEMA_NAME = C.TABLE_SCHEMA
+AND G.TABLE_NAME = C.TABLE_NAME
+LEFT JOIN (
+    SELECT rel_src.relname AS source_table,
+        STRING_AGG(
+            'ALTER TABLE '
+            || rel_src.relname
+            || ' ADD CONSTRAINT '
+            || con.conname
+            || ' FOREIGN KEY ('
+            || att_src.attname
+            || ') REFERENCES '
+            || rel_tgt.relname
+            || '('
+            || att_tgt.attname
+            || ');'
+            ,
+            ''
+      ) AS FOREIGN_KEY_COLUMNS,
+        STRING_AGG(
+                'COMMENT ON CONSTRAINT  '
+                || con.conname
+                || ' ON '
+                || rel_src.relname
+                || ' IS '''
+                || d.description
+                || ''';',
+                ''
+        ) AS FOREIGN_KEY_DESC
+    FROM
+        pg_constraint con
+        JOIN pg_class rel_src ON rel_src.oid = con.conrelid
+        JOIN pg_class rel_tgt ON rel_tgt.oid = con.confrelid
+        JOIN pg_attribute att_src ON att_src.attrelid = rel_src.oid AND att_src.attnum = ANY(con.conkey)
+        JOIN pg_attribute att_tgt ON att_tgt.attrelid = rel_tgt.oid AND att_tgt.attnum = ANY(con.confkey)
+        LEFT JOIN pg_description d ON d.objoid = con.oid
+    WHERE
+        con.contype = 'f'
+    GROUP BY
+        rel_src.relname
+) FK ON FK.source_table = C.TABLE_NAME
+WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
+"""
+        return sql
+
+    # 更新建表DDL语句
+    def refresh_create_table_ddl_train(self):
+
+        # sql = self.get_create_table_sql()
+        # 生成SQL
+        sql = self.get_create_table_sql2()
+
         # The information schema query may need some tweaking depending on your database. This is a good starting point.
         c_table_ddl_list = self.vn.run_sql(sql)
 
@@ -256,11 +374,12 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
             output_fields=["*"],
             limit=10000,
         )
-        exists_list = filter(lambda m: m["ddl"].startswith("CREATE TABLE "), exist_ddl_data)
-        remove_ids = [exist["id"] for exist in exists_list]
+        # exists_list = filter(lambda m: m["ddl"].startswith("CREATE TABLE "), exist_ddl_data)
+        # remove_ids = [exist["id"] for exist in exists_list]
+        remove_ids = [exist["id"] for exist in exist_ddl_data]
         if len(remove_ids) > 0:
             self.vn.milvus_client.delete(collection_name="vannaddl", ids=remove_ids)
-
+        # import pdb; pdb.set_trace()
         for table_ddl in c_table_ddl_records:
             self.vn.train(ddl=table_ddl["ddl"])
 
@@ -350,8 +469,200 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
         sql, df, fig = ask(self.vn, question, visualize=visualize, auto_train=auto_train, *args, **kwargs)
         return sql, df, fig
 
-    def generate_sql(self, question):
-        return self.vn.generate_sql(question=question)
+    def generate_sql(self, question,tenant_id:int, **kwargs):
+        """
+        Example:
+        ```python
+        vn.generate_sql("What are the top 10 customers by sales?")
+        ```
+
+        Uses the LLM to generate a SQL query that answers a question. It runs the following methods:
+
+        - [`get_similar_question_sql`][vanna.base.base.VannaBase.get_similar_question_sql]
+
+        - [`get_related_ddl`][vanna.base.base.VannaBase.get_related_ddl]
+
+        - [`get_related_documentation`][vanna.base.base.VannaBase.get_related_documentation]
+
+        - [`get_sql_prompt`][vanna.base.base.VannaBase.get_sql_prompt]
+
+        - [`submit_prompt`][vanna.base.base.VannaBase.submit_prompt]
+
+
+        Args:
+            question (str): The question to generate a SQL query for.
+            allow_llm_to_see_data (bool): Whether to allow the LLM to see the data (for the purposes of introspecting the data to generate the final SQL).
+
+        Returns:
+            str: The SQL query that answers the question.
+        """
+        if self.config is not None:
+            initial_prompt = self.config.get("initial_prompt", None)
+        else:
+            initial_prompt = None
+        import time
+        # import pdb; pdb.set_trace()
+        question_sql_list = self.vn.get_similar_question_sql(question, **kwargs)
+        # question_sql_list = question_sql_list[0:1]
+        ddl_list = self.vn.get_related_ddl(question, **kwargs)
+        # ddl_list= ddl_list[0:1]
+        # self.filter_ddl_with_llm(ddl_list=ddl_list,question=question)
+        # import pdb; pdb.set_trace()
+        doc_list = self.vn.get_related_documentation(question, **kwargs)
+        # doc_list.append(f"所有主表查询，必须加上条件tenant_id = {tenant_id}")
+        start_time1 = time.time()
+        prompt = self.get_sql_prompt(
+            initial_prompt=initial_prompt,
+            question=question,
+            question_sql_list=question_sql_list,
+            ddl_list=ddl_list,
+            doc_list=doc_list,
+            tenant_id=tenant_id,
+            **kwargs,
+        )
+
+        start_time = time.time()
+        print(f"get_sql_prompt 执行时间：{start_time - start_time1:.4f} 秒")
+        self.vn.log(title="SQL Prompt", message=prompt)
+        # import pdb; pdb.set_trace()
+        llm_response = self.vn.submit_prompt(prompt, **kwargs)
+        end_time = time.time()
+        self.vn.log(title="LLM Response", message=llm_response)
+        print(f"执行时间：{end_time - start_time:.4f} 秒")
+        return self.vn.extract_sql(llm_response)
+        # return self.vn.generate_sql(question=question)
+
+
+    def filter_ddl_with_llm(self, ddl_list, question, **kwargs):
+        """
+        使用本地 Ollama 大模型过滤与问题无关的 DDL 字段。
+
+        Args:
+            ddl_list (list[str]): 来自 get_related_ddl() 的表结构列表。
+            question (str): 用户输入的问题。
+            model_name (str): Ollama 中已加载的模型名称，如 llama3、mistral、codellama。
+
+        Returns:
+            list[str]: 过滤后的 DDL 字段列表（格式不变）。
+        """
+
+        # 初始化 Ollama 的 OpenAI 接口客户端
+        client = OpenAI(
+            base_url="http://wsd.wisdomidata.com:19042/v1",
+            api_key="sk-ollama"  # 不验证，随便写
+        )
+
+        # 拼接原始 DDL 内容作为 prompt
+        ddl_text = "\n".join(ddl_list)
+
+        prompt = f"""
+你是一个精通数据库建模的专家。
+请根据以下问题，分析并筛选出与之相关的 DDL 字段。删除所有与问题无关的字段。
+【问题】：
+{question}
+【DDL 表结构列表】：
+{ddl_text}
+【要求】：
+- 输出保留原始 DDL 格式。
+- 仅保留与问题直接相关的字段和表。
+- 不添加任何解释或注释，只输出精简后的结构。
+    """
+        import pdb; pdb.set_trace()
+        message_prompt = [self.vn.system_message(prompt)]
+        message_prompt.append(self.vn.user_message(question))
+        import time
+        start_time = time.time()
+        # llm_response = self.vn.submit_prompt(message_prompt, **kwargs)
+        # self.vn.log(title="LLM Response", message=llm_response)
+        # print(llm_response)
+        # return llm_response
+        # 调用 Ollama 本地模型
+        response = client.chat.completions.create(
+            model="deepseek-coder-v2",
+            messages=message_prompt,
+            temperature=0.2,
+            max_tokens=14096,
+        )
+        end_time = time.time()
+        print(f"执行时间：{end_time - start_time:.4f} 秒")
+        # 获取返回文本
+        filtered_text = response.choices[0].message.content.strip()
+        # 按换行切割为列表（格式与原始 ddl_list 一致）
+        return filtered_text.splitlines()
+
+    def get_sql_prompt(
+        self,
+        initial_prompt : str,
+        question: str,
+        question_sql_list: list,
+        ddl_list: list,
+        doc_list: list,
+        tenant_id: int,
+        **kwargs,
+    ):
+        """
+        Example:
+        ```python
+        vn.get_sql_prompt(
+            question="What are the top 10 customers by sales?",
+            question_sql_list=[{"question": "What are the top 10 customers by sales?", "sql": "SELECT * FROM customers ORDER BY sales DESC LIMIT 10"}],
+            ddl_list=["CREATE TABLE customers (id INT, name TEXT, sales DECIMAL)"],
+            doc_list=["The customers table contains information about customers and their sales."],
+        )
+
+        ```
+
+        This method is used to generate a prompt for the LLM to generate SQL.
+
+        Args:
+            question (str): The question to generate SQL for.
+            question_sql_list (list): A list of questions and their corresponding SQL statements.
+            ddl_list (list): A list of DDL statements.
+            doc_list (list): A list of documentation.
+
+        Returns:
+            any: The prompt for the LLM to generate SQL.
+        """
+
+        if initial_prompt is None:
+            initial_prompt = f"You are a {self.vn.dialect} expert. " + \
+                             "Please help to generate a SQL query to answer the question. Your response should ONLY be based on the given context and follow the response guidelines and format instructions. "
+
+        initial_prompt = self.vn.add_ddl_to_prompt(
+            initial_prompt, ddl_list, max_tokens=self.vn.max_tokens
+        )
+
+        if self.vn.static_documentation != "":
+            doc_list.append(self.vn.static_documentation)
+
+        initial_prompt = self.vn.add_documentation_to_prompt(
+            initial_prompt, doc_list, max_tokens=self.vn.max_tokens
+        )
+
+        initial_prompt += (
+            "===Response Guidelines \n"
+            "1. If the provided context is sufficient, please generate a valid SQL query without any explanations for the question. \n"
+            "2. If the provided context is almost sufficient but requires knowledge of a specific string in a particular column, please generate an intermediate SQL query to find the distinct strings in that column. Prepend the query with a comment saying intermediate_sql \n"
+            "3. If the provided context is insufficient, please explain why it can't be generated. \n"
+            "4. Please use the most relevant table(s). \n"
+            "5. If the question has been asked and answered before, please repeat the answer exactly as it was given before. \n"
+            f"6. Ensure that the output SQL is {self.vn.dialect}-compliant and executable, and free of syntax errors. \n"
+            f"7. 所有主表格增加条件：tenant_id = {tenant_id}. \n"
+        )
+
+        message_log = [self.vn.system_message(initial_prompt)]
+
+        for example in question_sql_list:
+            if example is None:
+                print("example is None")
+            else:
+                if example is not None and "question" in example and "sql" in example:
+                    message_log.append(self.vn.user_message(example["question"]))
+                    message_log.append(self.vn.assistant_message(example["sql"]))
+
+        message_log.append(self.vn.user_message(question))
+
+        return message_log
 
     def run_sql(self, sql):
         return self.vn.run_sql(sql=sql)
@@ -419,6 +730,91 @@ def make_vanna_class(ChatClass=Ollama):
 
             return self.submit_prompt(prompt=my_prompt)
 
+        def get_related_ddl(self, question: str, **kwargs) -> list:
+            # import pdb; pdb.set_trace()
+            search_params = {
+                "metric_type": "COSINE",
+                "params": {"nprobe": 8},
+            }
+            # 归一化向量
+            # def normalize(v):
+            #     norm = LA.norm(v)
+            #     return v / norm if norm > 0 else v
+
+            embeddings = self.embedding_function.encode_queries([question])
+            # embeddings = normalize(embeddings)
+
+            res = self.milvus_client.search(
+                collection_name="vannaddl",
+                anns_field="vector",
+                data=embeddings,
+                limit=self.n_results,
+                output_fields=["ddl"],
+                search_params=search_params
+            )
+            res = res[0]
+
+            list_ddl = []
+            for doc in res:
+                print(doc["distance"])
+                list_ddl.append(doc["entity"]["ddl"])
+            return list_ddl
+
+        def get_similar_question_sql2(self, question: str, **kwargs) -> list:
+            search_params = {
+                "metric_type": "L2",
+                "params": {"nprobe": 128},
+            }
+            embeddings = self.embedding_function.encode_queries([question])
+            res = self.milvus_client.search(
+                collection_name="vannasql",
+                anns_field="text_vector",
+                data=embeddings,
+                limit=self.n_results,
+                output_fields=["text", "sql"],
+                search_params=search_params
+            )
+            res = res[0]
+
+            list_sql = []
+            for doc in res:
+                dict = {}
+                dict["question"] = doc["entity"]["text"]
+                dict["sql"] = doc["entity"]["sql"]
+                list_sql.append(dict)
+            return list_sql
+
+        def _create_collections(self):
+            # import pdb; pdb.set_trace()
+            self._create_sql_collection("vannasql")
+            self._create_ddl_collection("vannaddl")
+            self._create_doc_collection("vannadoc")
+
+        def _create_ddl_collection(self, name: str):
+            # import pdb; pdb.set_trace()
+            if not self.milvus_client.has_collection(collection_name=name):
+                vannaddl_schema = MilvusClient.create_schema(
+                    auto_id=False,
+                    enable_dynamic_field=False,
+                )
+                vannaddl_schema.add_field(field_name="id", datatype=DataType.VARCHAR, max_length=65535, is_primary=True)
+                vannaddl_schema.add_field(field_name="ddl", datatype=DataType.VARCHAR, max_length=65535)
+                vannaddl_schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self._embedding_dim)
+
+                vannaddl_index_params = self.milvus_client.prepare_index_params()
+                vannaddl_index_params.add_index(
+                    field_name="vector",
+                    index_name="vector",
+                    index_type="AUTOINDEX",
+                    metric_type="COSINE",
+                    # metric_type="L2",
+                )
+                self.milvus_client.create_collection(
+                    collection_name=name,
+                    schema=vannaddl_schema,
+                    index_params=vannaddl_index_params,
+                    consistency_level="Strong"
+                )
     return MyVanna
 
 
