@@ -4,12 +4,11 @@ import { useTranslation } from 'react-i18next'
 import useConfig from './use-config'
 import type { VannaNodeType } from './types'
 import Field from '@/app/components/workflow/nodes/_base/components/field'
-import type { NodePanelProps } from '@/app/components/workflow/types'
+import type { NodePanelProps, ValueSelector } from '@/app/components/workflow/types'
 import { InputVarType } from '@/app/components/workflow/types'
 import ModelParameterModal from '@/app/components/header/account-setting/model-provider-page/model-parameter-modal'
 import VarReferencePicker from '@/app/components/workflow/nodes/_base/components/variable/var-reference-picker'
 import BeforeRunForm from '@/app/components/workflow/nodes/_base/components/before-run-form'
-import ResultPanel from '@/app/components/workflow/run/result-panel'
 import type { Props as FormProps } from '@/app/components/workflow/nodes/_base/components/before-run-form/form'
 import { findVariableWhenOnLLMVision } from '@/app/components/workflow/nodes/utils'
 import Split from '@/app/components/workflow/nodes/_base/components/split'
@@ -34,7 +33,6 @@ const Panel: FC<NodePanelProps<VannaNodeType>> = (
     hideSingleRun,
     handleRun,
     handleStop,
-    runResult,
     runningStatus,
     filterVar,
     varInputs,
@@ -116,7 +114,20 @@ const Panel: FC<NodePanelProps<VannaNodeType>> = (
             nodeId={id}
             isShowNodeName
             value={inputs.query || []}
-            onChange={handleInputVarChange}
+            onChange={(e: string | ValueSelector) => { handleInputVarChange('query', e) }}
+            filterVar={filterVar}
+          />
+        </Field>
+
+        <Field
+          title={'租户Id'}
+        >
+          <VarReferencePicker
+            readonly={readOnly}
+            nodeId={id}
+            isShowNodeName
+            value={inputs.target_tenant_id || []}
+            onChange={(e: string | ValueSelector) => { handleInputVarChange('target_tenant_id', e) }}
             filterVar={filterVar}
           />
         </Field>
@@ -146,7 +157,8 @@ const Panel: FC<NodePanelProps<VannaNodeType>> = (
           runningStatus={runningStatus}
           onRun={handleRun}
           onStop={handleStop}
-          result={<ResultPanel {...runResult} showSteps={false}/>}
+          existVarValuesInForms={[]}
+          filteredExistVarForms={[]}
         />
       )}
     </div>

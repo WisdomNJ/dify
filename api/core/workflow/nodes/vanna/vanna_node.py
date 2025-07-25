@@ -31,12 +31,16 @@ class Config:
             "port": dify_config.VANNA_DB_PORT
         }
 
+
 vn_instances = {}
+
 
 def get_vanna_server(key, combined_config):
     if key not in vn_instances:
         vn_instances[key] = VannaServer(combined_config)
     return vn_instances[key]
+
+
 class VannaNode(LLMNode):
     # FIXME: figure out why here is different from super class
     _node_data_cls = VannaNodeData  # type: ignore
@@ -56,7 +60,9 @@ class VannaNode(LLMNode):
     def _run(self):
         node_data = cast(VannaNodeData, self.node_data)
         variable = self.graph_runtime_state.variable_pool.get(node_data.query)
+        variable_tenant_id = self.graph_runtime_state.variable_pool.get(node_data.target_tenant_id)
         query = variable.text if variable else ""
+        target_tenant_id = variable_tenant_id.text if variable_tenant_id else ""
 
         model_instance, model_config = self._fetch_model_config(self.node_data.model)
         # 'tongyi' 通义 'openai' openai 'ollama' ollama 'deepseek' deepseek
@@ -86,11 +92,10 @@ class VannaNode(LLMNode):
         cache_data = get_vanna_server(cache_kay, combined_config)
 
         # 提问获取sql和结果
-        sql = cache_data.generate_sql(query)
+        sql = cache_data.generate_sql(question=query, tenant_id=target_tenant_id)
         # 对生成的SQL做处理
         sql = handle_sql(sql=sql)
         return NodeRunResult(
             status=WorkflowNodeExecutionStatus.SUCCEEDED,
             outputs={"output": sql}
         )
-

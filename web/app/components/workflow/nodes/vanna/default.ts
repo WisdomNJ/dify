@@ -31,10 +31,10 @@ const nodeDefault: NodeDefault<VannaNodeType> = {
     checkValid(payload: VannaNodeType, t: any) {
         let isValid = true
         let errorMessages = ''
-        if (!payload.query || payload.query.length === 0) {
+        if (!payload.query || payload.query.length === 0)
             errorMessages = '输入变量不能为空'
+         else
             isValid = false
-        }
 
         return {
             isValid,

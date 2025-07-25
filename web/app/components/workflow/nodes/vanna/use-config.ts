@@ -88,9 +88,11 @@ const useConfig = (id: string, payload: VannaNodeType) => {
         setInputs(newInputs)
     }, [inputs, setInputs])
 
-    const handleInputVarChange = useCallback((newInputVar: ValueSelector | string) => {
+    const handleInputVarChange = useCallback((type: keyof VannaNodeType, newInputVar: ValueSelector | string) => {
         const newInputs = produce(inputs, (draft) => {
-            draft.query = newInputVar as ValueSelector || []
+            // eslint-disable-next-line ts/ban-ts-comment
+            // @ts-expect-error
+            draft[type] = newInputVar as ValueSelector || []
         })
         setInputs(newInputs)
     }, [inputs, setInputs])

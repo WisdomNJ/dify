@@ -21,6 +21,7 @@ class VannaNodeData(BaseNodeData):
 
     model: ModelConfig
     query: list[str]
+    target_tenant_id: list[str]
     instruction: Optional[str] = None
     vision: VisionConfig = Field(default_factory=VisionConfig)
 
