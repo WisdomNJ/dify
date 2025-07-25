@@ -280,6 +280,7 @@ const translation = {
     'agent': 'Wywoływanie dużych modeli językowych w celu odpowiadania na pytania lub przetwarzania języka naturalnego',
     'loop': 'Wykonaj pętlę logiki, dopóki nie zostanie spełniony warunek zakończenia lub nie zostanie osiągnięta maksymalna liczba iteracji.',
     'loop-end': 'Odpowiada "break". Ten węzeł nie ma elementów konfiguracyjnych. Gdy ciało pętli dotrze do tego węzła, pętla zostaje zakończona.',
+      'vanna': 'vanna',
   },
   operator: {
     zoomIn: 'Powiększ',

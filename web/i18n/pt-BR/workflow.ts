@@ -280,6 +280,7 @@ const translation = {
     'agent': 'Invocar grandes modelos de linguagem para responder a perguntas ou processar linguagem natural',
     'loop-end': 'Equivalente a "break". Este nó não possui itens de configuração. Quando o corpo do loop atinge este nó, o loop termina.',
     'loop': 'Execute um loop de lógica até que a condição de término seja atendida ou o número máximo de loops seja alcançado.',
+      'vanna': 'vanna',
   },
   operator: {
     zoomIn: 'Aproximar',

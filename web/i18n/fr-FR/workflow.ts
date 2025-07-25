@@ -280,6 +280,7 @@ const translation = {
     'agent': 'Appel de grands modèles de langage pour répondre à des questions ou traiter le langage naturel',
     'loop': 'Exécutez une boucle de logique jusqu\'à ce que la condition de terminaison soit remplie ou que le nombre maximum de boucles soit atteint.',
     'loop-end': 'Équivalent à "break". Ce nœud n\'a pas d\'éléments de configuration. Lorsque le corps de la boucle atteint ce nœud, la boucle se termine.',
+    'vanna': 'vanna',
   },
   operator: {
     zoomIn: 'Zoomer',

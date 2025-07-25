@@ -294,6 +294,7 @@ const translation = {
     'agent': 'Richiamo di modelli linguistici di grandi dimensioni per rispondere a domande o elaborare il linguaggio naturale',
     'loop-end': 'Equivalente a "break". Questo nodo non ha elementi di configurazione. Quando il corpo del ciclo raggiunge questo nodo, il ciclo termina.',
     'loop': 'Esegui un ciclo di logica fino a quando la condizione di terminazione non viene soddisfatta o il numero massimo di cicli viene raggiunto.',
+    'vanna': 'vanna',
   },
   operator: {
     zoomIn: 'Zoom In',

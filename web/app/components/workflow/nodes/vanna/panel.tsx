@@ -1,17 +1,19 @@
-import React, {FC} from 'react'
-import {useTranslation} from 'react-i18next'
+import type { FC } from 'react'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
 import useConfig from './use-config'
-import type {VannaNodeType} from './types'
+import type { VannaNodeType } from './types'
 import Field from '@/app/components/workflow/nodes/_base/components/field'
-import {InputVarType, NodePanelProps} from '@/app/components/workflow/types'
-import ModelParameterModal from "@/app/components/header/account-setting/model-provider-page/model-parameter-modal";
-import VarReferencePicker from "@/app/components/workflow/nodes/_base/components/variable/var-reference-picker";
-import BeforeRunForm from "@/app/components/workflow/nodes/_base/components/before-run-form";
-import ResultPanel from "@/app/components/workflow/run/result-panel";
-import type {Props as FormProps} from "@/app/components/workflow/nodes/_base/components/before-run-form/form";
-import {findVariableWhenOnLLMVision} from "@/app/components/workflow/nodes/utils";
-import Split from "@/app/components/workflow/nodes/_base/components/split";
-import OutputVars, {VarItem} from "@/app/components/workflow/nodes/_base/components/output-vars";
+import type { NodePanelProps } from '@/app/components/workflow/types'
+import { InputVarType } from '@/app/components/workflow/types'
+import ModelParameterModal from '@/app/components/header/account-setting/model-provider-page/model-parameter-modal'
+import VarReferencePicker from '@/app/components/workflow/nodes/_base/components/variable/var-reference-picker'
+import BeforeRunForm from '@/app/components/workflow/nodes/_base/components/before-run-form'
+import ResultPanel from '@/app/components/workflow/run/result-panel'
+import type { Props as FormProps } from '@/app/components/workflow/nodes/_base/components/before-run-form/form'
+import { findVariableWhenOnLLMVision } from '@/app/components/workflow/nodes/utils'
+import Split from '@/app/components/workflow/nodes/_base/components/split'
+import OutputVars, { VarItem } from '@/app/components/workflow/nodes/_base/components/output-vars'
 
 const i18nPrefix = 'workflow.nodes.parameterExtractor'
 
@@ -20,7 +22,7 @@ const Panel: FC<NodePanelProps<VannaNodeType>> = (
     id,
     data,
   }) => {
-  const {t} = useTranslation()
+  const { t } = useTranslation()
 
   const {
     readOnly,
@@ -75,7 +77,7 @@ const Panel: FC<NodePanelProps<VannaNodeType>> = (
             type: currentVariable?.formType as any,
             required: false,
           }],
-          values: {'#files#': visionFiles},
+          values: { '#files#': visionFiles },
           onChange: keyValue => setVisionFiles((keyValue as any)['#files#']),
         },
       )
@@ -83,7 +85,6 @@ const Panel: FC<NodePanelProps<VannaNodeType>> = (
 
     return forms
   })()
-
 
   return (
     <div className='mt-2'>

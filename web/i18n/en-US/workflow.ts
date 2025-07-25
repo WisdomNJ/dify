@@ -280,6 +280,7 @@ const translation = {
     'document-extractor': 'Used to parse uploaded documents into text content that is easily understandable by LLM.',
     'list-operator': 'Used to filter or sort array content.',
     'agent': 'Invoking large language models to answer questions or process natural language',
+    'vanna': 'vanna',
   },
   operator: {
     zoomIn: 'Zoom In',

@@ -280,6 +280,7 @@ const translation = {
     'agent': 'Invocar modelos de lenguaje de gran tamaño para responder preguntas o procesar el lenguaje natural',
     'loop-end': 'Equivalente a "romper". Este nodo no tiene elementos de configuración. Cuando el cuerpo del bucle alcanza este nodo, el bucle termina.',
     'loop': 'Ejecuta un bucle de lógica hasta que se cumpla la condición de terminación o se alcance el conteo máximo de bucles.',
+    'vanna': 'vanna',
   },
   operator: {
     zoomIn: 'Acercar',

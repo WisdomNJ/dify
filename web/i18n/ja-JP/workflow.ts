@@ -278,6 +278,7 @@ const translation = {
     'document-extractor': 'アップロード文書を LLM 処理用に最適化されたテキストに変換します。',
     'list-operator': '配列のフィルタリングやソート処理を行います。',
     'agent': '大規模言語モデルを活用した質問応答や自然言語処理を実行します。',
+      'vanna': 'vanna',
   },
   operator: {
     zoomIn: '拡大',

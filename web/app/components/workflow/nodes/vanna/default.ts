@@ -1,8 +1,8 @@
-import type {NodeDefault} from '../../types'
-import {BlockEnum} from '../../types'
-import type {VannaNodeType} from './types'
-import {ALL_CHAT_AVAILABLE_BLOCKS, ALL_COMPLETION_AVAILABLE_BLOCKS} from '@/app/components/workflow/blocks'
-import {ReasoningModeType} from "@/app/components/workflow/nodes/parameter-extractor/types";
+import type { NodeDefault } from '../../types'
+import { BlockEnum } from '../../types'
+import type { VannaNodeType } from './types'
+import { ALL_CHAT_AVAILABLE_BLOCKS, ALL_COMPLETION_AVAILABLE_BLOCKS } from '@/app/components/workflow/blocks'
+import { ReasoningModeType } from '@/app/components/workflow/nodes/parameter-extractor/types'
 
 const nodeDefault: NodeDefault<VannaNodeType> = {
     defaultValue: {
@@ -28,11 +28,12 @@ const nodeDefault: NodeDefault<VannaNodeType> = {
     getAvailableNextNodes(isChatMode: boolean) {
         return isChatMode ? ALL_CHAT_AVAILABLE_BLOCKS : ALL_COMPLETION_AVAILABLE_BLOCKS
     },
-    checkValid(payload: VannaNodeType) {
+    checkValid(payload: VannaNodeType, t: any) {
         let isValid = true
         let errorMessages = ''
-        if (!payload.query || payload.query.length === 0){
+        if (!payload.query || payload.query.length === 0) {
             errorMessages = '输入变量不能为空'
+            isValid = false
         }
 
         return {

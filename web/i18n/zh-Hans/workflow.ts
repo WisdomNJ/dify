@@ -281,6 +281,7 @@ const translation = {
     'document-extractor': '用于将用户上传的文档解析为 LLM 便于理解的文本内容。',
     'list-operator': '用于过滤或排序数组内容。',
     'agent': '调用大型语言模型回答问题或处理自然语言',
+      'vanna': '调用大型语言模型回答问题',
   },
   operator: {
     zoomIn: '放大',

@@ -21,6 +21,7 @@ import {
   QuestionClassifier,
   TemplatingTransform,
   VariableX,
+  Vanna,
 } from '@/app/components/base/icons/src/vender/workflow'
 import AppIcon from '@/app/components/base/app-icon'
 
@@ -60,6 +61,7 @@ const getIcon = (type: BlockEnum, className: string) => {
     [BlockEnum.DocExtractor]: <DocsExtractor className={className} />,
     [BlockEnum.ListFilter]: <ListFilter className={className} />,
     [BlockEnum.Agent]: <Agent className={className} />,
+    [BlockEnum.Vanna]: <Vanna className={className} />,
   }[type]
 }
 const ICON_CONTAINER_BG_COLOR_MAP: Record<string, string> = {
@@ -83,6 +85,7 @@ const ICON_CONTAINER_BG_COLOR_MAP: Record<string, string> = {
   [BlockEnum.DocExtractor]: 'bg-util-colors-green-green-500',
   [BlockEnum.ListFilter]: 'bg-util-colors-cyan-cyan-500',
   [BlockEnum.Agent]: 'bg-util-colors-indigo-indigo-500',
+  // [BlockEnum.Vanna]: 'bg-util-colors-green-green-500',
 }
 const BlockIcon: FC<BlockIconProps> = ({
   type,

@@ -412,6 +412,12 @@ export const NODES_INITIAL_DATA = {
     desc: '',
     ...AgentDefault.defaultValue,
   },
+  [BlockEnum.Vanna]: {
+       type: BlockEnum.Vanna,
+       title: '',
+       desc: '',
+        ...VannaDefault.defaultValue,
+  },
 }
 export const MAX_ITERATION_PARALLEL_NUM = 10
 export const MIN_ITERATION_PARALLEL_NUM = 1
@@ -483,7 +489,8 @@ export const SUPPORT_OUTPUT_VARS_NODE = [
   BlockEnum.HttpRequest, BlockEnum.Tool, BlockEnum.VariableAssigner, BlockEnum.VariableAggregator, BlockEnum.QuestionClassifier,
   BlockEnum.ParameterExtractor, BlockEnum.Iteration, BlockEnum.Loop,
   BlockEnum.DocExtractor, BlockEnum.ListFilter,
-  BlockEnum.Agent,BlockEnum.Vanna
+  BlockEnum.Agent,
+  BlockEnum.Vanna,
 ]
 
 export const LLM_OUTPUT_STRUCT: Var[] = [

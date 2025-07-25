@@ -301,6 +301,7 @@ const translation = {
     'loop': '종료 조건이 충족되거나 최대 반복 횟수에 도달할 때까지 논리 루프를 실행합니다.',
     'loop-end':
       '"break"와 동일합니다. 이 노드는 구성 항목이 없습니다. 루프 본문이 이 노드에 도달하면 루프가 종료됩니다.',
+      'vanna': 'vanna',
   },
   operator: {
     zoomIn: '확대',

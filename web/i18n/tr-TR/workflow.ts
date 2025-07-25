@@ -280,6 +280,7 @@ const translation = {
     'agent': 'Soruları yanıtlamak veya doğal dili işlemek için büyük dil modellerini çağırma',
     'loop': 'Sonlandırma koşulu karşılanana kadar veya maksimum döngü sayısına ulaşılana kadar bir mantık döngüsü çalıştırın.',
     'loop-end': '"break" ile eşdeğerdir. Bu düğümün yapılandırma öğesi yoktur. Döngü gövdesi bu düğüme ulaştığında, döngü sona erer.',
+      'vanna': 'vanna',
   },
   operator: {
     zoomIn: 'Yakınlaştır',

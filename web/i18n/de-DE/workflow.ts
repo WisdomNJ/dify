@@ -280,6 +280,7 @@ const translation = {
     'agent': 'Aufruf großer Sprachmodelle zur Beantwortung von Fragen oder zur Verarbeitung natürlicher Sprache',
     'loop': 'Führen Sie eine Schleife aus, bis die Abschlussbedingungen erfüllt sind oder die maximalen Schleifenanzahl erreicht ist.',
     'loop-end': 'Entspricht "break". Dieser Knoten hat keine Konfigurationselemente. Wenn der Schleifenrumpf diesen Knoten erreicht, wird die Schleife beendet.',
+    'vanna': 'vanna',
   },
   operator: {
     zoomIn: 'Vergrößern',

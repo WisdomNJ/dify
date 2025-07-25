@@ -1,20 +1,20 @@
-import type {VannaNodeType} from './types'
+import type { VannaNodeType } from './types'
 import useNodeCrud from '@/app/components/workflow/nodes/_base/hooks/use-node-crud'
 import {
     useNodesReadOnly,
 } from '@/app/components/workflow/hooks'
-import {useCallback, useRef, useState} from "react";
-import produce from "immer";
-import {ValueSelector, Var, VarType} from "@/app/components/workflow/types";
-import useOneStepRun from "@/app/components/workflow/nodes/_base/hooks/use-one-step-run";
-import useConfigVision from "@/app/components/workflow/hooks/use-config-vision";
-import useAvailableVarList from "@/app/components/workflow/nodes/_base/hooks/use-available-var-list";
+import { useCallback, useRef } from 'react'
+import produce from 'immer'
+import type { ValueSelector, Var } from '@/app/components/workflow/types'
+import { VarType } from '@/app/components/workflow/types'
+import useOneStepRun from '@/app/components/workflow/nodes/_base/hooks/use-one-step-run'
+import useConfigVision from '@/app/components/workflow/hooks/use-config-vision'
+import useAvailableVarList from '@/app/components/workflow/nodes/_base/hooks/use-available-var-list'
 
 const useConfig = (id: string, payload: VannaNodeType) => {
-    const {nodesReadOnly: readOnly} = useNodesReadOnly()
-    const {inputs, setInputs} = useNodeCrud<VannaNodeType>(id, payload)
+    const { nodesReadOnly: readOnly } = useNodesReadOnly()
+    const { inputs, setInputs } = useNodeCrud<VannaNodeType>(id, payload)
     const inputRef = useRef(inputs)
-    const [modelChanged, setModelChanged] = useState(false)
 
     // model
     const model = inputs.model || {
@@ -25,8 +25,6 @@ const useConfig = (id: string, payload: VannaNodeType) => {
             temperature: 0.7,
         },
     }
-
-    const modelMode = inputs.model?.mode
 
     // single run
     const {
@@ -41,6 +39,8 @@ const useConfig = (id: string, payload: VannaNodeType) => {
         setRunInputData,
         runResult,
     } = useOneStepRun<VannaNodeType>({
+        isPaused: false,
+        isRunAfterSingleRun: false,
         id,
         data: inputs,
         defaultRunInputData: {
@@ -51,9 +51,6 @@ const useConfig = (id: string, payload: VannaNodeType) => {
 
     const {
         isVisionModel,
-        handleVisionResolutionEnabledChange,
-        handleVisionResolutionChange,
-        handleModelChanged: handleVisionConfigAfterModelChanged,
     } = useConfigVision(model, {
         payload: inputs.vision,
         onChange: (newPayload) => {
@@ -64,11 +61,9 @@ const useConfig = (id: string, payload: VannaNodeType) => {
         },
     })
 
-
     const filterVisionInputVar = useCallback((varPayload: Var) => {
         return [VarType.file, VarType.arrayFile].includes(varPayload.type)
     }, [])
-
 
     const {
         availableVars: availableVisionVars,
@@ -77,7 +72,6 @@ const useConfig = (id: string, payload: VannaNodeType) => {
         filterVar: filterVisionInputVar,
     })
 
-
     const handleModelChanged = useCallback((model: { provider: string; modelId: string; mode?: string }) => {
         const newInputs = produce(inputRef.current, (draft) => {
             draft.model.provider = model.provider
@@ -85,12 +79,9 @@ const useConfig = (id: string, payload: VannaNodeType) => {
             draft.model.mode = model.mode!
         })
         setInputs(newInputs)
-        setModelChanged(true)
     }, [setInputs])
 
-
     const handleCompletionParamsChange = useCallback((newParams: Record<string, any>) => {
-        debugger
         const newInputs = produce(inputs, (draft) => {
             draft.model.completion_params = newParams
         })
@@ -118,7 +109,6 @@ const useConfig = (id: string, payload: VannaNodeType) => {
         return vars
     })()
 
-
     const setInputVarValues = useCallback((newPayload: Record<string, any>) => {
         setRunInputData(newPayload)
     }, [setRunInputData])
@@ -130,7 +120,6 @@ const useConfig = (id: string, payload: VannaNodeType) => {
             '#files#': newFiles,
         })
     }, [runInputDataRef, setRunInputData])
-
 
     return {
         readOnly,
@@ -155,7 +144,7 @@ const useConfig = (id: string, payload: VannaNodeType) => {
         handleCompletionParamsChange,
         availableVisionVars,
         visionFiles,
-        setVisionFiles
+        setVisionFiles,
     }
 }
 
