@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from vanna.milvus import Milvus_VectorStore
 from pymilvus import DataType, MilvusClient,model
 from collections import defaultdict
-from numpy import linalg as LA
+from types import SimpleNamespace
 from openai import OpenAI
 import uuid
 load_dotenv()
@@ -82,26 +82,23 @@ class VannaServer:
                 device='cpu'  # 'cpu' or 'cuda:0'
             )
         chat_llm = Ollama
+
+        config = {
+            'model': model_,  # 本地ollama大模型名称
+            'api_key': api_key if api_key != '' else None,  # 本地ollama大模型服务地址
+            'milvus_client': milvus_client,  # 本地milvus向量数据库服务地址
+            "n_results": 12,
+            "embedding_function": embedding_function,
+        }
+
         if llm_type == "ollama":
-            config = {
-                'model': model_,  # 本地ollama大模型名称
-                'ollama_host': ollama_host,  # 本地ollama大模型服务地址
-                'milvus_client': milvus_client,  # 本地milvus向量数据库服务地址
-                "n_results": 12,
-                "embedding_function": embedding_function,
-            }
-        else:
-            config = {
-                'model': model_,  # 本地ollama大模型名称
-                'api_key': api_key,  # 本地ollama大模型服务地址
-                'milvus_client': milvus_client,  # 本地milvus向量数据库服务地址
-                "n_results": 12,
-                "embedding_function": embedding_function,
-            }
-        if llm_type == "tongyi":
+            config['ollama_host'] = ollama_host # 本地ollama大模型服务地址
+
+        elif llm_type == "tongyi":
             chat_llm = QianWenAI_Chat
         elif llm_type == "deepseek":
             chat_llm = DeepSeekChat
+
         MyVanna = make_vanna_class(ChatClass=chat_llm)
         vn = MyVanna(config)
         if sql_type == "postgres":
@@ -109,6 +106,12 @@ class VannaServer:
         elif sql_type == "mysql":
             vn.connect_to_mysql(host=host, dbname=dbname, user=user, password=password, port=port)
 
+        if llm_type == "ollama":
+            vn.client = SimpleNamespace(
+                model=model_,
+                api_key=api_key if api_key != '' else 'None',
+                base_url=ollama_host + "/v1"
+            )
         return vn
 
     def schema_train(self):
@@ -533,49 +536,42 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
         return self.vn.extract_sql(llm_response)
         # return self.vn.generate_sql(question=question)
 
-
-
-    def fast_generate_sql(self, question,tenant_id:int, **kwargs):
+    def fast_generate_sql(self, question, tenant_id: int, **kwargs):
         # 获取所有的问句
         funcs = self.vn.get_related_func(question=question)
         print(funcs)
         # 将字典转换为 JSON 字符串
         json_str = json.dumps(funcs, ensure_ascii=False)
         prompt = f"""
-你是一个接口匹配助手，任务是：
+            你是一个接口匹配助手，任务是：
 
-1. 根据接口描述，选出与用户问句最相关的一个接口
-2. 提取或推理出接口所需的参数值
-3. 给出最终的函数调用格式
-4. 今天是2025-07-27
-5. 匹配精度要高，参数必须完全匹配，匹配不到返回错误信息
+            1. 根据接口描述，选出与用户问句最相关的一个接口
+            2. 提取或推理出接口所需的参数值
+            3. 给出最终的函数调用格式
+            4. 今天是2025-07-27
+            5. 匹配精度要高，参数必须完全匹配，匹配不到返回错误信息
 
-接口文档如下：
-{json_str}
-请输出json格式如下：
-{{
-    "name": "接口名称",
-    "description": "接口说明",
-    "params": {{ city:"参数1",date:"参数2"}}
-}}
-- params是参数，参数为空显示空字符串
-"""
+            接口文档如下：
+            {json_str}
+            请输出json格式如下：
+            {{
+                "name": "接口名称",
+                "description": "接口说明",
+                "params": {{ city:"参数1",date:"参数2"}}
+            }}
+            - params是参数，参数为空显示空字符串
+        """
         # prompt = ""
         message_prompt = [self.vn.system_message(prompt)]
         message_prompt.append(self.vn.user_message(question))
         # 初始化 Ollama 的 OpenAI 接口客户端
         # import pdb; pdb.set_trace()
         client = OpenAI(
-            # base_url="http://wsd.wisdomidata.com:19042/v1",
-            # base_url="https://api.deepseek.com/v1",
-            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-            # api_key="sk-c94a59781bb9408c9588218450ee6838"  # 不验证，随便写
-            api_key="sk-7b0c509055994271b30bbe25f6347066"  # 不验证，随便写
+            base_url=self.vn.client.base_url,
+            api_key=self.vn.client.api_key,
         )
         response = client.chat.completions.create(
-            # model="deepseek-coder",
-            model="qwen2.5-coder-7b-instruct",
-            # model="qwen2.5-coder-32b-instruct",
+            model= self.vn.client.model,
             messages=message_prompt,
             temperature=0.2,
             max_tokens=8192,
@@ -583,7 +579,7 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
 
         filtered_text = response.choices[0].message.content.strip()
         print(filtered_text)
-        return None
+        return filtered_text
 
     def filter_ddl_with_llm(self, ddl_list, question, **kwargs):
         """
