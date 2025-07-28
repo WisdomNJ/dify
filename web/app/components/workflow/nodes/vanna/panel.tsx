@@ -141,11 +141,6 @@ const Panel: FC<NodePanelProps<VannaNodeType>> = (
             type='string'
             description={'查询出结果的数据'}
           />
-          <VarItem
-            name='sql'
-            type='string'
-            description={'生成的sql语句'}
-          />
         </OutputVars>
       </div>
 

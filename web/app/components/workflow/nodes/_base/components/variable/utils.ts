@@ -485,14 +485,9 @@ const formatItem = (
                   variable: 'output',
                   type: VarType.string,
               },
-              {
-                  variable: 'sql',
-                  type: VarType.string,
-              },
           ]
           break
       }
-
   }
 
   const { error_strategy } = data

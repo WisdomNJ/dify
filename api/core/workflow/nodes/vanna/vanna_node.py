@@ -35,8 +35,11 @@ class Config:
 vn_instances = {}
 
 
-def get_vanna_server(key, combined_config):
+def get_vanna_server(key, vanna_config):
     if key not in vn_instances:
+        config = Config(key)
+        # 合并配置
+        combined_config = {**config.__dict__, **config.sql_config, **vanna_config}
         vn_instances[key] = VannaServer(combined_config)
     return vn_instances[key]
 
@@ -85,16 +88,15 @@ class VannaNode(LLMNode):
             "api_key": api_key,
             "ollama_host": base_url
         }
-        config = Config("")
-        # 合并配置
-        combined_config = {**config.__dict__, **config.sql_config, **vanna_config}
-
-        cache_data = get_vanna_server(cache_kay, combined_config)
-
+        import time
+        start_time1 = time.time()
+        cache_data = get_vanna_server(cache_kay, vanna_config)
         # 提问获取sql和结果
         sql = cache_data.generate_sql(question=query, tenant_id=target_tenant_id)
         # 对生成的SQL做处理
         sql = handle_sql(sql=sql)
+        start_time2 = time.time()
+        print(f"生成SQL,执行时间：{start_time2 - start_time1:.4f} 秒")
         return NodeRunResult(
             status=WorkflowNodeExecutionStatus.SUCCEEDED,
             outputs={"output": sql}
