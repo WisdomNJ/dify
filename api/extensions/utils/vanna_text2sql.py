@@ -10,6 +10,7 @@ from pymilvus import DataType, MilvusClient,model
 from collections import defaultdict
 from numpy import linalg as LA
 from openai import OpenAI
+import uuid
 load_dotenv()
 # 设置显示后端为浏览器
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
@@ -533,6 +534,57 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
         # return self.vn.generate_sql(question=question)
 
 
+
+    def fast_generate_sql(self, question,tenant_id:int, **kwargs):
+        # 获取所有的问句
+        funcs = self.vn.get_related_func(question=question)
+        print(funcs)
+        # 将字典转换为 JSON 字符串
+        json_str = json.dumps(funcs, ensure_ascii=False)
+        prompt = f"""
+你是一个接口匹配助手，任务是：
+
+1. 根据接口描述，选出与用户问句最相关的一个接口
+2. 提取或推理出接口所需的参数值
+3. 给出最终的函数调用格式
+4. 今天是2025-07-27
+5. 匹配精度要高，参数必须完全匹配，匹配不到返回错误信息
+
+接口文档如下：
+{json_str}
+请输出json格式如下：
+{{
+    "name": "接口名称",
+    "description": "接口说明",
+    "params": {{ city:"参数1",date:"参数2"}}
+}}
+- params是参数，参数为空显示空字符串
+"""
+        # prompt = ""
+        message_prompt = [self.vn.system_message(prompt)]
+        message_prompt.append(self.vn.user_message(question))
+        # 初始化 Ollama 的 OpenAI 接口客户端
+        # import pdb; pdb.set_trace()
+        client = OpenAI(
+            # base_url="http://wsd.wisdomidata.com:19042/v1",
+            # base_url="https://api.deepseek.com/v1",
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            # api_key="sk-c94a59781bb9408c9588218450ee6838"  # 不验证，随便写
+            api_key="sk-7b0c509055994271b30bbe25f6347066"  # 不验证，随便写
+        )
+        response = client.chat.completions.create(
+            # model="deepseek-coder",
+            model="qwen2.5-coder-7b-instruct",
+            # model="qwen2.5-coder-32b-instruct",
+            messages=message_prompt,
+            temperature=0.2,
+            max_tokens=8192,
+        )
+
+        filtered_text = response.choices[0].message.content.strip()
+        print(filtered_text)
+        return None
+
     def filter_ddl_with_llm(self, ddl_list, question, **kwargs):
         """
         使用本地 Ollama 大模型过滤与问题无关的 DDL 字段。
@@ -712,6 +764,43 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
 
         return False
 
+
+    def func_data_import(self, data_list):
+
+        import pdb; pdb.set_trace()
+
+        empty_items = list(filter(
+            lambda item: item['name'] is None or item['name'] == "" or item['description'] is None or item['description'] == "",
+            data_list
+        ))
+
+        if bool(empty_items):
+            return True
+
+        exist_func_data = self.vn.milvus_client.query(
+            collection_name="vannafunc",
+            output_fields=["*"],
+            limit=10000,
+        )
+        data_texts = {t["description"]: t for t in data_list}
+
+        if bool(exist_func_data):
+            remove_ids = [item["id"] for item in exist_func_data if item['description'] in data_texts ]
+
+            if bool(remove_ids):
+                self.vn.milvus_client.delete(collection_name="vannafunc", ids=remove_ids)
+
+        for item in data_list:
+            self.vn.add_func(
+                description=item["description"],
+                name=item["name"],
+                params=item["params"],
+            )
+
+        self.vn.milvus_client.refresh_load(collection_name="vannafunc")
+
+        return False
+
 def make_vanna_class(ChatClass=Ollama):
     class MyVanna(Milvus_VectorStore, ChatClass):
         def __init__(self, config=None):
@@ -760,6 +849,36 @@ def make_vanna_class(ChatClass=Ollama):
                 list_ddl.append(doc["entity"]["ddl"])
             return list_ddl
 
+        def get_related_func(self, question: str, **kwargs) -> list:
+            search_params = {
+                "metric_type": "COSINE",
+                "params": {"nprobe": 8},
+            }
+
+            embeddings = self.embedding_function.encode_queries([question])
+
+            res = self.milvus_client.search(
+                collection_name="vannafunc",
+                anns_field="vector",
+                data=embeddings,
+                limit=20,
+                output_fields=["name","description","params"],
+                search_params=search_params
+            )
+            res = res[0]
+            list_func = []
+            for doc in res:
+                print(doc["distance"])
+                params = json.loads(doc["entity"]["params"])
+                name = doc["entity"]["name"]
+                description = doc["entity"]["description"]
+                list_func.append({
+                    "params" : params,
+                    "name" : name,
+                    "description" : description
+                })
+            return list_func
+
         def get_similar_question_sql2(self, question: str, **kwargs) -> list:
             search_params = {
                 "metric_type": "L2",
@@ -789,6 +908,7 @@ def make_vanna_class(ChatClass=Ollama):
             self._create_sql_collection("vannasql")
             self._create_ddl_collection("vannaddl")
             self._create_doc_collection("vannadoc")
+            self._create_func_collection("vannafunc")
 
         def _create_ddl_collection(self, name: str):
             # import pdb; pdb.set_trace()
@@ -815,6 +935,51 @@ def make_vanna_class(ChatClass=Ollama):
                     index_params=vannaddl_index_params,
                     consistency_level="Strong"
                 )
+
+        def _create_func_collection(self, name: str):
+            # import pdb; pdb.set_trace()
+            if not self.milvus_client.has_collection(collection_name=name):
+                vannafunc_schema = MilvusClient.create_schema(
+                    auto_id=False,
+                    enable_dynamic_field=False,
+                )
+                vannafunc_schema.add_field(field_name="id", datatype=DataType.VARCHAR, max_length=65535, is_primary=True)
+                vannafunc_schema.add_field(field_name="description", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="name", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="params", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self._embedding_dim)
+
+                vannafunc_index_params = self.milvus_client.prepare_index_params()
+                vannafunc_index_params.add_index(
+                    field_name="vector",
+                    index_name="vector",
+                    index_type="AUTOINDEX",
+                    metric_type="COSINE",
+                    # metric_type="L2",
+                )
+                self.milvus_client.create_collection(
+                    collection_name=name,
+                    schema=vannafunc_schema,
+                    index_params=vannafunc_index_params,
+                    consistency_level="Strong"
+                )
+
+        def add_func(self, description: str, name: str, params: str, **kwargs) -> str:
+            if len(description) == 0:
+                raise Exception("description can not be null")
+            _id = str(uuid.uuid4()) + "-func"
+            embedding = self.embedding_function.encode_documents([description])[0]
+            self.milvus_client.insert(
+                collection_name="vannafunc",
+                data={
+                    "id": _id,
+                    "description": description,
+                    "name" : name,
+                    "params" : params,
+                    "vector": embedding
+                }
+            )
+            return _id
     return MyVanna
 
 

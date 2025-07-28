@@ -186,6 +186,27 @@ def init_app(app: DifyApp):
                 "sql": sql,
             }) , 200
 
+    @app.route('/api/fast_generate_sql', methods=['GET'])
+    def fast_generate_sql():
+        question = request.args.get('question')
+        tenant_id = request.args.get('tenant_id')
+        supplier = request.args.get('supplier','')
+
+        if question is None:
+            return jsonify({"type": "error", "error": "No question provided"})
+        server = get_vn_instance(supplier)
+        import time
+        start_time1 = time.time()
+        sql = server.fast_generate_sql(question=question,tenant_id=tenant_id)
+        # 对生成的SQL做处理
+        sql = handle_sql(sql=sql)
+        start_time2  = time.time()
+        print(f"生成SQL,执行时间：{start_time2 - start_time1:.4f} 秒")
+        return jsonify(
+            {
+                "sql": sql,
+            }) , 200
+
     @app.route('/api/run_sql', methods=['POST'])
     def run_sql():
         data = request.json
@@ -242,6 +263,31 @@ def init_app(app: DifyApp):
 
             server = get_vn_instance("")
             result = server.training_data_import(data_list)
+            if result:
+                return jsonify({"type": "error", "error": "存在数据集question 或 sql为空"})
+
+            return jsonify({'status': 'success'}), 200
+
+        except Exception as e:
+            return jsonify({"type": "error", "error": f"文件解析失败: {str(e)}"}), 500
+
+    @app.route('/api/func/data/import', methods=['POST'])
+    def func_data_import():
+
+        if 'file' not in request.files:
+            return jsonify({"type": "error", "error": "未上传文件"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"type": "error", "error": "文件名为空"}), 400
+
+        try:
+            # 读取文件并解析每一行的 JSON 对象
+            content = file.read().decode('utf-8').strip()
+            data_list = ast.literal_eval(content)
+
+            server = get_vn_instance("")
+            result = server.func_data_import(data_list)
             if result:
                 return jsonify({"type": "error", "error": "存在数据集question 或 sql为空"})
 
