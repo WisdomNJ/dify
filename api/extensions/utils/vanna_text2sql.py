@@ -767,8 +767,6 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
 
     def func_data_import(self, data_list):
 
-        import pdb; pdb.set_trace()
-
         empty_items = list(filter(
             lambda item: item['name'] is None or item['name'] == "" or item['description'] is None or item['description'] == "",
             data_list
@@ -795,6 +793,7 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
                 description=item["description"],
                 name=item["name"],
                 params=item["params"],
+                ext=item["ext"]
             )
 
         self.vn.milvus_client.refresh_load(collection_name="vannafunc")
@@ -825,13 +824,7 @@ def make_vanna_class(ChatClass=Ollama):
                 "metric_type": "COSINE",
                 "params": {"nprobe": 8},
             }
-            # 归一化向量
-            # def normalize(v):
-            #     norm = LA.norm(v)
-            #     return v / norm if norm > 0 else v
-
             embeddings = self.embedding_function.encode_queries([question])
-            # embeddings = normalize(embeddings)
 
             res = self.milvus_client.search(
                 collection_name="vannaddl",
@@ -862,7 +855,7 @@ def make_vanna_class(ChatClass=Ollama):
                 anns_field="vector",
                 data=embeddings,
                 limit=20,
-                output_fields=["name","description","params"],
+                output_fields=["name","description","params","ext","id"],
                 search_params=search_params
             )
             res = res[0]
@@ -872,9 +865,13 @@ def make_vanna_class(ChatClass=Ollama):
                 params = json.loads(doc["entity"]["params"])
                 name = doc["entity"]["name"]
                 description = doc["entity"]["description"]
+                ext = doc["entity"]["ext"]
+                id = doc["entity"]["id"]
                 list_func.append({
+                    "id" : id,
                     "params" : params,
                     "name" : name,
+                    "ext" : ext,
                     "description" : description
                 })
             return list_func
@@ -947,6 +944,7 @@ def make_vanna_class(ChatClass=Ollama):
                 vannafunc_schema.add_field(field_name="description", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="name", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="params", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="ext", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self._embedding_dim)
 
                 vannafunc_index_params = self.milvus_client.prepare_index_params()
@@ -964,7 +962,7 @@ def make_vanna_class(ChatClass=Ollama):
                     consistency_level="Strong"
                 )
 
-        def add_func(self, description: str, name: str, params: str, **kwargs) -> str:
+        def add_func(self, description: str, name: str, params: str, ext : str, **kwargs) -> str:
             if len(description) == 0:
                 raise Exception("description can not be null")
             _id = str(uuid.uuid4()) + "-func"
@@ -976,6 +974,7 @@ def make_vanna_class(ChatClass=Ollama):
                     "description": description,
                     "name" : name,
                     "params" : params,
+                    "ext" : ext,
                     "vector": embedding
                 }
             )
