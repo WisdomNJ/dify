@@ -17,9 +17,10 @@ FROM base AS packages
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc g++ libc-dev libffi-dev libgmp-dev libmpfr-dev libmpc-dev
 
+# 构建时重新生成uv.lock文件
 # Install Python dependencies
-COPY pyproject.toml uv.lock ./
-RUN uv sync --locked
+COPY pyproject.toml ./
+RUN uv sync
 
 # production stage
 FROM base AS production
