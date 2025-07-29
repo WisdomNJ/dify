@@ -209,8 +209,10 @@ class Tenant(Base):
     custom_config: Mapped[Optional[str]] = mapped_column(db.Text)
     created_at: Mapped[datetime] = mapped_column(db.DateTime, server_default=func.current_timestamp(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(db.DateTime, server_default=func.current_timestamp())
+    # ACM 添加的保存私有密钥 与 租户Id
+    encrypt_private_key = db.Column(db.Text)
     target_tenant_id = db.Column(db.String(255), nullable=True)
-
+    # ===================
     def get_accounts(self) -> list[Account]:
         return (
             db.session.query(Account)
