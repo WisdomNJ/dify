@@ -115,6 +115,7 @@ const translation = {
     addBlock: 'Dodaj węzeł',
     needEndNode: 'Należy dodać węzeł końcowy',
     needAnswerNode: 'Węzeł odpowiedzi musi zostać dodany',
+    tagBound: 'Liczba aplikacji korzystających z tego tagu',
   },
   env: {
     envPanelTitle: 'Zmienne Środowiskowe',
@@ -234,6 +235,8 @@ const translation = {
     'plugin': 'Wtyczka',
     'searchBlock': 'Wyszukaj węzeł',
     'blocks': 'Węzły',
+    'addAll': 'Dodaj wszystko',
+    'allAdded': 'Wszystko dodane',
   },
   blocks: {
     'start': 'Start',
@@ -365,7 +368,10 @@ const translation = {
         retryFailedTimes: '{{times}} ponawianie prób nie powiodło się',
         ms: 'Ms',
       },
-      typeSwitch: {},
+      typeSwitch: {
+        variable: 'Użyj zmiennej',
+        input: 'Wartość wejściowa',
+      },
     },
     start: {
       required: 'wymagane',
@@ -552,6 +558,7 @@ const translation = {
       advancedDependencies: 'Zaawansowane zależności',
       advancedDependenciesTip: 'Dodaj niektóre preładowane zależności, które zajmują więcej czasu lub nie są domyślnie wbudowane',
       searchDependencies: 'Wyszukaj zależności',
+      syncFunctionSignature: 'Zsynchronizuj sygnaturę funkcji z kodem',
     },
     templateTransform: {
       inputVars: 'Zmienne wejściowe',
@@ -671,6 +678,9 @@ const translation = {
         json: 'JSON wygenerowany przez narzędzien',
       },
       authorize: 'Autoryzuj',
+      insertPlaceholder2: 'wstaw zmienną',
+      settings: 'Ustawienia',
+      insertPlaceholder1: 'Wpisz lub naciśnij',
     },
     questionClassifiers: {
       model: 'model',
@@ -855,6 +865,8 @@ const translation = {
       learnMore: 'Dowiedz się więcej',
       strategyNotSet: 'Nie ustawiono strategii agentalnej',
       model: 'model',
+      parameterSchema: 'Schemat parametrów',
+      clickToViewParameterSchema: 'Kliknij, aby zobaczyć schemat parametrów',
     },
     loop: {
       ErrorMethod: {

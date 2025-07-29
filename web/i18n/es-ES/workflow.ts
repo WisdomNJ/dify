@@ -115,6 +115,7 @@ const translation = {
     needAnswerNode: 'Se debe agregar el nodo de respuesta',
     needEndNode: 'Se debe agregar el nodo Final',
     addBlock: 'Agregar nodo',
+    tagBound: 'Número de aplicaciones que utilizan esta etiqueta',
   },
   env: {
     envPanelTitle: 'Variables de Entorno',
@@ -234,6 +235,8 @@ const translation = {
     'plugin': 'Plugin',
     'searchBlock': 'Buscar nodo',
     'blocks': 'Nodos',
+    'addAll': 'Agregar todo',
+    'allAdded': 'Todo añadido',
   },
   blocks: {
     'start': 'Inicio',
@@ -365,7 +368,10 @@ const translation = {
         retries: '{{num}} Reintentos',
         retry: 'Reintentar',
       },
-      typeSwitch: {},
+      typeSwitch: {
+        input: 'Valor de entrada',
+        variable: 'Usa la variable',
+      },
     },
     start: {
       required: 'requerido',
@@ -470,10 +476,12 @@ const translation = {
         options: {
           disabled: {
             subTitle: 'No habilitar el filtrado de metadatos',
+            title: 'Deshabilitado',
           },
           automatic: {
             subTitle: 'Generar automáticamente condiciones de filtrado de metadatos basadas en la consulta del usuario',
             desc: 'Generar automáticamente condiciones de filtrado de metadatos basadas en la variable de consulta',
+            title: 'Automático',
           },
           manual: {
             title: 'Manual',
@@ -550,6 +558,7 @@ const translation = {
       advancedDependencies: 'Dependencias avanzadas',
       advancedDependenciesTip: 'Agrega algunas dependencias precargadas que consumen más tiempo o no son incorporadas por defecto aquí',
       searchDependencies: 'Buscar dependencias',
+      syncFunctionSignature: 'Sincronizar la firma de la función con el código',
     },
     templateTransform: {
       inputVars: 'Variables de entrada',
@@ -669,6 +678,9 @@ const translation = {
         json: 'JSON generado por la herramienta',
       },
       authorize: 'autorizar',
+      insertPlaceholder2: 'insertar variable',
+      settings: 'Ajustes',
+      insertPlaceholder1: 'Escribe o presiona',
     },
     questionClassifiers: {
       model: 'modelo',
@@ -856,6 +868,8 @@ const translation = {
       strategyNotFoundDescAndSwitchVersion: 'La versión del plugin instalado no proporciona esta estrategia. Haga clic para cambiar de versión.',
       toolNotAuthorizedTooltip: '{{herramienta}} No autorizado',
       modelNotSelected: 'Modelo no seleccionado',
+      clickToViewParameterSchema: 'Haga clic para ver el esquema de parámetros',
+      parameterSchema: 'Esquema de Parámetros',
     },
     loop: {
       ErrorMethod: {
@@ -887,6 +901,7 @@ const translation = {
       error_other: '{{count}} Errores',
       loopVariables: 'Variables de bucle',
       variableName: 'Nombre de Variable',
+      input: 'Entrada',
     },
   },
   tracing: {
@@ -905,6 +920,7 @@ const translation = {
       onlyShowNamedVersions: 'Solo muestra versiones nombradas',
       empty: 'No se encontró un historial de versiones coincidente.',
       reset: 'Restablecer filtro',
+      all: 'Todo',
     },
     editField: {
       titleLengthLimit: 'El título no puede exceder {{limit}} caracteres',
@@ -928,6 +944,7 @@ const translation = {
     deletionTip: 'La eliminación es irreversible, por favor confirma.',
     currentDraft: 'Borrador Actual',
     editVersionInfo: 'Editar información de la versión',
+    latest: 'Último',
   },
   debug: {
     noData: {
@@ -940,6 +957,7 @@ const translation = {
         stop: 'Detén la carrera',
         normal: 'Inspeccionar Variable',
         cached: 'Ver variables en caché',
+        clear: 'Claro',
       },
       envNode: 'Medio ambiente',
       chatNode: 'Conversación',
@@ -952,6 +970,7 @@ const translation = {
       resetConversationVar: 'Restablecer la variable de conversación al valor predeterminado',
       clearNode: 'Limpiar variable en caché',
       emptyTip: 'Después de recorrer un nodo en el lienzo o ejecutar un nodo paso a paso, puedes ver el valor actual de la variable del nodo en Inspección de Variables.',
+      edited: 'Editado',
     },
     lastRunTab: 'Última ejecución',
     settingsTab: 'Ajustes',
