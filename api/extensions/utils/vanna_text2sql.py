@@ -445,6 +445,36 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
             dict_docs.append(doc)
         return dict_docs
 
+
+    # 更新建表DDL语句
+    def run_sql(self, sql : str, params : dict):
+
+        # sql = self.get_create_table_sql()
+        # 生成SQL
+        sql = self.get_create_table_sql2()
+
+        # The information schema query may need some tweaking depending on your database. This is a good starting point.
+        c_table_ddl_list = self.vn.run_sql(sql)
+
+        # 将 DataFrame 转换为字典列表
+        c_table_ddl_records = c_table_ddl_list.to_dict(orient='records')
+
+        exist_ddl_data = self.vn.milvus_client.query(
+            collection_name="vannaddl",
+            output_fields=["*"],
+            limit=10000,
+        )
+        # exists_list = filter(lambda m: m["ddl"].startswith("CREATE TABLE "), exist_ddl_data)
+        # remove_ids = [exist["id"] for exist in exists_list]
+        remove_ids = [exist["id"] for exist in exist_ddl_data]
+        if len(remove_ids) > 0:
+            self.vn.milvus_client.delete(collection_name="vannaddl", ids=remove_ids)
+        # import pdb; pdb.set_trace()
+        for table_ddl in c_table_ddl_records:
+            self.vn.train(ddl=table_ddl["ddl"])
+
+        self.vn.milvus_client.refresh_load(collection_name="vannaddl")
+
     def vn_train(self, question="", sql="", documentation="", ddl=""):
         if question and sql:
             # 训练问答对
@@ -536,12 +566,17 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
         return self.vn.extract_sql(llm_response)
         # return self.vn.generate_sql(question=question)
 
-    def fast_generate_sql(self, question, tenant_id: int, **kwargs):
+    def get_api_info(self, question, **kwargs) -> dict:
         # 获取所有的问句
         funcs = self.vn.get_related_func(question=question)
         print(funcs)
+        if len(funcs) == 0:
+            return {}
+
+        wanted_keys = {"description", "params", "id"}
+        api_prompt_list = [{k: v for k, v in f.items() if k in wanted_keys} for f in funcs]
         # 将字典转换为 JSON 字符串
-        json_str = json.dumps(funcs, ensure_ascii=False)
+        json_str = json.dumps(api_prompt_list, ensure_ascii=False)
         prompt = f"""
             你是一个接口匹配助手，任务是：
 
@@ -550,36 +585,88 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
             3. 给出最终的函数调用格式
             4. 今天是2025-07-27
             5. 匹配精度要高，参数必须完全匹配，匹配不到返回错误信息
-
+            6. 注意参数的类型，要与params内保持一致
             接口文档如下：
+
             {json_str}
             请输出json格式如下：
             {{
-                "name": "接口名称",
+                "id": "主键",
                 "description": "接口说明",
-                "params": {{ city:"参数1",date:"参数2"}}
+                "params": {{ param1: 2025 , param2: "字符串"}}
             }}
             - params是参数，参数为空显示空字符串
         """
-        # prompt = ""
         message_prompt = [self.vn.system_message(prompt)]
         message_prompt.append(self.vn.user_message(question))
         # 初始化 Ollama 的 OpenAI 接口客户端
-        # import pdb; pdb.set_trace()
         client = OpenAI(
             base_url=self.vn.client.base_url,
             api_key=self.vn.client.api_key,
         )
         response = client.chat.completions.create(
-            model= self.vn.client.model,
+            model= "qwen2.5-coder-7b-instruct",
             messages=message_prompt,
             temperature=0.2,
             max_tokens=8192,
         )
 
         filtered_text = response.choices[0].message.content.strip()
-        print(filtered_text)
-        return filtered_text
+        cleaned_json_str = filtered_text.replace('```json', '').replace('```', '').strip()
+        cleaned_json_str = cleaned_json_str.strip().strip('`')
+        parsed_dict:dict = json.loads(cleaned_json_str)
+        result = next((f for f in funcs if f.get("id") == parsed_dict["id"]), None)
+        api_info = {**result, **parsed_dict}
+        print(api_info)
+        return api_info
+
+    def get_run_text2api(self, question, tenant_id: int, **kwargs) -> dict:
+        # 通过模型，匹配最相似的API信息，及参数
+        api_info:dict = self.get_api_info(question=question)
+        # 验证环节
+        if not api_info["id"]:
+            return {
+                "api_status" : 0
+            }
+
+        # 根据API信息，执行接口
+        run_api_info = self.get_run_api(api_info=api_info,tenant_id=tenant_id)
+        return run_api_info
+
+    def get_run_api(self, api_info: dict, tenant_id: int, **kwargs) -> dict:
+        type = api_info["type"]
+        # 获取API 信息
+        ext = api_info["ext"]
+        url = api_info["url"]
+        description = api_info["description"]
+        params = api_info["params"]
+        content = api_info["content"]
+        if not ext:
+            ext = {}
+        if type == "sql":
+            return {
+                "url" : url,
+                "api_status" : 1,
+                "description" : description,
+                "body" : {
+                    "sql" : content,
+                    "params" : params,
+                    "tenantId" : tenant_id,
+                    "ext" : ext
+                }
+            }
+        else:
+            return {
+                "url" : url,
+                "api_status" : 1,
+                "description" : description,
+                "body" : {
+                    "content" : content,
+                    "params" : params,
+                    "tenantId" : tenant_id,
+                    "ext" : ext
+                }
+            }
 
     def filter_ddl_with_llm(self, ddl_list, question, **kwargs):
         """
@@ -764,7 +851,7 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
     def func_data_import(self, data_list):
 
         empty_items = list(filter(
-            lambda item: item['name'] is None or item['name'] == "" or item['description'] is None or item['description'] == "",
+            lambda item: item['url'] is None or item['url'] == "" or item['description'] is None or item['description'] == "",
             data_list
         ))
 
@@ -787,9 +874,11 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
         for item in data_list:
             self.vn.add_func(
                 description=item["description"],
-                name=item["name"],
+                url=item["url"],
                 params=item["params"],
-                ext=item["ext"]
+                ext=item["ext"],
+                type=item["type"],
+                content=item["content"],
             )
 
         self.vn.milvus_client.refresh_load(collection_name="vannafunc")
@@ -851,7 +940,7 @@ def make_vanna_class(ChatClass=Ollama):
                 anns_field="vector",
                 data=embeddings,
                 limit=20,
-                output_fields=["name","description","params","ext","id"],
+                output_fields=["url","description","params","ext","id","type","content"],
                 search_params=search_params
             )
             res = res[0]
@@ -859,14 +948,18 @@ def make_vanna_class(ChatClass=Ollama):
             for doc in res:
                 print(doc["distance"])
                 params = json.loads(doc["entity"]["params"])
-                name = doc["entity"]["name"]
+                url = doc["entity"]["url"]
                 description = doc["entity"]["description"]
                 ext = doc["entity"]["ext"]
+                type = doc["entity"]["type"]
+                content = doc["entity"]["content"]
                 id = doc["entity"]["id"]
                 list_func.append({
                     "id" : id,
                     "params" : params,
-                    "name" : name,
+                    "url" : url,
+                    "type" : type,
+                    "content" : content,
                     "ext" : ext,
                     "description" : description
                 })
@@ -938,9 +1031,11 @@ def make_vanna_class(ChatClass=Ollama):
                 )
                 vannafunc_schema.add_field(field_name="id", datatype=DataType.VARCHAR, max_length=65535, is_primary=True)
                 vannafunc_schema.add_field(field_name="description", datatype=DataType.VARCHAR, max_length=65535)
-                vannafunc_schema.add_field(field_name="name", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="url", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="params", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="type", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="ext", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="content", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self._embedding_dim)
 
                 vannafunc_index_params = self.milvus_client.prepare_index_params()
@@ -958,7 +1053,7 @@ def make_vanna_class(ChatClass=Ollama):
                     consistency_level="Strong"
                 )
 
-        def add_func(self, description: str, name: str, params: str, ext : str, **kwargs) -> str:
+        def add_func(self, description: str, url: str, params: str, ext : str, type : str, content : str, **kwargs) -> str:
             if len(description) == 0:
                 raise Exception("description can not be null")
             _id = str(uuid.uuid4()) + "-func"
@@ -968,9 +1063,11 @@ def make_vanna_class(ChatClass=Ollama):
                 data={
                     "id": _id,
                     "description": description,
-                    "name" : name,
+                    "url" : url,
                     "params" : params,
                     "ext" : ext,
+                    "type" : type,
+                    "content" : content,
                     "vector": embedding
                 }
             )

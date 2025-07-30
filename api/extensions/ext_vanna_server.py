@@ -207,6 +207,24 @@ def init_app(app: DifyApp):
                 "sql": sql,
             }) , 200
 
+    @app.route('/api/get_run_text2api', methods=['GET'])
+    def get_run_text2api():
+        question = request.args.get('question')
+        tenant_id = request.args.get('tenant_id')
+        supplier = request.args.get('supplier','')
+
+        if question is None:
+            return jsonify({"type": "error", "error": "No question provided"})
+        server = get_vn_instance(supplier)
+        import time
+        start_time1 = time.time()
+        data = server.get_run_text2api(question=question,tenant_id=tenant_id)
+        # 对生成的SQL做处理
+        # sql = handle_sql(sql=sql)
+        start_time2  = time.time()
+        print(f"生成SQL,执行时间：{start_time2 - start_time1:.4f} 秒")
+        return jsonify(data) , 200
+
     @app.route('/api/run_sql', methods=['POST'])
     def run_sql():
         data = request.json
