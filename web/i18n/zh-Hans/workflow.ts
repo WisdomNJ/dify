@@ -247,7 +247,8 @@ const translation = {
     'code': '代码执行',
     'template-transform': '模板转换',
     'http-request': 'HTTP 请求',
-    'vanna': 'Vanna',
+    'vanna': 'Vanna', // ACM 添加的组件
+    'function-calling': '智能接口调度器', // ACM 添加的组件
     'variable-assigner': '变量赋值器',
     'variable-aggregator': '变量聚合器',
     'assigner': '变量赋值',
@@ -282,7 +283,8 @@ const translation = {
     'document-extractor': '用于将用户上传的文档解析为 LLM 便于理解的文本内容。',
     'list-operator': '用于过滤或排序数组内容。',
     'agent': '调用大型语言模型回答问题或处理自然语言',
-      'vanna': '调用大型语言模型回答问题',
+    'vanna': '调用大型语言模型回答问题',
+    'function-calling': '自然语言 + 智能接口调度器',
   },
   operator: {
     zoomIn: '放大',

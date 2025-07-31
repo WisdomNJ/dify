@@ -284,6 +284,7 @@ const translation = {
     'loop': 'Führen Sie eine Schleife aus, bis die Abschlussbedingungen erfüllt sind oder die maximalen Schleifenanzahl erreicht ist.',
     'loop-end': 'Entspricht "break". Dieser Knoten hat keine Konfigurationselemente. Wenn der Schleifenrumpf diesen Knoten erreicht, wird die Schleife beendet.',
     'vanna': 'vanna',
+    'function-calling': '智能接口调度器',
   },
   operator: {
     zoomIn: 'Vergrößern',

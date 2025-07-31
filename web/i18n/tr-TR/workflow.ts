@@ -284,6 +284,7 @@ const translation = {
     'loop': 'Sonlandırma koşulu karşılanana kadar veya maksimum döngü sayısına ulaşılana kadar bir mantık döngüsü çalıştırın.',
     'loop-end': '"break" ile eşdeğerdir. Bu düğümün yapılandırma öğesi yoktur. Döngü gövdesi bu düğüme ulaştığında, döngü sona erer.',
       'vanna': 'vanna',
+      'function-calling': '智能接口调度器',
   },
   operator: {
     zoomIn: 'Yakınlaştır',

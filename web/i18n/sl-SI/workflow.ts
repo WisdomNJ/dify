@@ -279,7 +279,8 @@ const translation = {
     'start': 'Določite začetne parametre za zagon delovnega toka',
     'variable-assigner': 'Združite večpodružinske spremenljivke v eno samo spremenljivko za enotno konfiguracijo spodnjih vozlišč.',
     'variable-aggregator': 'Združite večpodružnične spremenljivke v eno samo spremenljivko za enotno konfiguracijo spodnjih vozlišč.',
-      'vanna': 'vanna',
+    'vanna': 'vanna',
+    'function-calling': '智能接口调度器',
   },
   operator: {
     zoomOut: 'Zoomirati ven',

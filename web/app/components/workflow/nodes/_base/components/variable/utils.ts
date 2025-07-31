@@ -523,7 +523,7 @@ const formatItem = (
       }) as Var[]
       break
     }
-
+    // ACM 添加的组件
       case BlockEnum.Vanna: {
           res.vars = [
               {
@@ -533,6 +533,16 @@ const formatItem = (
           ]
           break
       }
+      case BlockEnum.FunctionCalling: {
+          res.vars = [
+              {
+                  variable: 'output',
+                  type: VarType.object,
+              },
+          ]
+          break
+      }
+    // ==== ACM 添加的组件
   }
 
   const { error_strategy } = data

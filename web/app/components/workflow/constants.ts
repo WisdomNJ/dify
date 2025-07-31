@@ -23,6 +23,7 @@ import AgentDefault from './nodes/agent/default'
 import LoopStartDefault from './nodes/loop-start/default'
 import LoopEndDefault from './nodes/loop-end/default'
 import VannaDefault from './nodes/vanna/default'
+import FunctionCallingDefault from './nodes/function-calling/default'
 
 type NodesExtraData = {
   author: string
@@ -243,7 +244,7 @@ export const NODES_EXTRA_DATA: Record<BlockEnum, NodesExtraData> = {
     getAvailableNextNodes: ListFilterDefault.getAvailableNextNodes,
     checkValid: AgentDefault.checkValid,
   },
-
+  // ACM 添加的组件
     [BlockEnum.Vanna]: {
         author: '维斯德',
         about: '',
@@ -253,6 +254,17 @@ export const NODES_EXTRA_DATA: Record<BlockEnum, NodesExtraData> = {
         getAvailableNextNodes: VannaDefault.getAvailableNextNodes,
         checkValid: VannaDefault.checkValid,
     },
+    [BlockEnum.FunctionCalling]: {
+        author: '维斯德',
+        about: '',
+        availablePrevNodes: [],
+        availableNextNodes: [],
+        getAvailablePrevNodes: FunctionCallingDefault.getAvailablePrevNodes,
+        getAvailableNextNodes: FunctionCallingDefault.getAvailableNextNodes,
+        checkValid: VannaDefault.checkValid,
+        defaultRunInputData: undefined,
+    },
+  // ==== ACM 添加的组件
 }
 
 export const NODES_INITIAL_DATA = {
@@ -412,12 +424,20 @@ export const NODES_INITIAL_DATA = {
     desc: '',
     ...AgentDefault.defaultValue,
   },
+  // ACM 添加的组件
   [BlockEnum.Vanna]: {
        type: BlockEnum.Vanna,
        title: '',
        desc: '',
         ...VannaDefault.defaultValue,
   },
+  [BlockEnum.FunctionCalling]: {
+      type: BlockEnum.FunctionCalling,
+      title: '',
+      desc: '',
+        ...FunctionCallingDefault.defaultValue,
+  },
+  // ===== ACM 添加的组件
 }
 export const MAX_ITERATION_PARALLEL_NUM = 10
 export const MIN_ITERATION_PARALLEL_NUM = 1
@@ -490,7 +510,10 @@ export const SUPPORT_OUTPUT_VARS_NODE = [
   BlockEnum.ParameterExtractor, BlockEnum.Iteration, BlockEnum.Loop,
   BlockEnum.DocExtractor, BlockEnum.ListFilter,
   BlockEnum.Agent,
+  // ACM 添加的组件
   BlockEnum.Vanna,
+  BlockEnum.FunctionCalling,
+  // ==== ACM 添加的组件
 ]
 
 export const LLM_OUTPUT_STRUCT: Var[] = [

@@ -298,6 +298,7 @@ const translation = {
     'loop-end': 'Equivalente a "break". Questo nodo non ha elementi di configurazione. Quando il corpo del ciclo raggiunge questo nodo, il ciclo termina.',
     'loop': 'Esegui un ciclo di logica fino a quando la condizione di terminazione non viene soddisfatta o il numero massimo di cicli viene raggiunto.',
     'vanna': 'vanna',
+    'function-calling': '智能接口调度器',
   },
   operator: {
     zoomIn: 'Zoom In',

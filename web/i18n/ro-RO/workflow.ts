@@ -283,7 +283,8 @@ const translation = {
     'agent': 'Invocarea modelelor lingvistice mari pentru a răspunde la întrebări sau pentru a procesa limbajul natural',
     'loop': 'Executați o buclă de logică până când condiția de terminare este îndeplinită sau numărul maxim de bucle este atins.',
     'loop-end': 'Echivalent cu „break”. Acest nod nu are elemente de configurare. Când corpul buclei ajunge la acest nod, bucla se termină.',
-      'vanna': 'vanna',
+    'vanna': 'vanna',
+    'function-calling': '智能接口调度器',
   },
   operator: {
     zoomIn: 'Mărește',

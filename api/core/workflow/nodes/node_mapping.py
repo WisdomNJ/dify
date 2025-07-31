@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 
 from core.workflow.nodes.vanna.vanna_node import VannaNode
+from core.workflow.nodes.function_calling.function_calling_node import FunctionCallingNode
 from core.workflow.nodes.agent.agent_node import AgentNode
 from core.workflow.nodes.answer import AnswerNode
 from core.workflow.nodes.base import BaseNode
@@ -136,5 +137,9 @@ NODE_TYPE_CLASSES_MAPPING: Mapping[NodeType, Mapping[str, type[BaseNode]]] = {
      NodeType.VANNA: {
         LATEST_VERSION: VannaNode,
         "1": VannaNode,
+    },
+    NodeType.FUNCTION_CALLING: {
+        LATEST_VERSION: FunctionCallingNode,
+        "1": FunctionCallingNode,
     },
 }

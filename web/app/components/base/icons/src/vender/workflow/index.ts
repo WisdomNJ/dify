@@ -20,4 +20,7 @@ export { default as QuestionClassifier } from './QuestionClassifier'
 export { default as TemplatingTransform } from './TemplatingTransform'
 export { default as VariableX } from './VariableX'
 export { default as WindowCursor } from './WindowCursor'
+// ACM 添加的组件
 export { default as Vanna } from './Vanna'
+export { default as FunctionCalling } from './FunctionCalling'
+// ==== ACM 添加的组件

@@ -281,6 +281,7 @@ const translation = {
     'list-operator': 'Used to filter or sort array content.',
     'agent': 'Invoking large language models to answer questions or process natural language',
     'vanna': 'vanna',
+    'function-calling': '智能接口调度器',
   },
   operator: {
     zoomIn: 'Zoom In',

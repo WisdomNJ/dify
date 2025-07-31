@@ -100,11 +100,18 @@ export const BLOCKS: Block[] = [
     type: BlockEnum.Agent,
     title: 'Agent',
   },
+  // ACM 添加的组件
   {
     classification: BlockClassificationEnum.Default,
     type: BlockEnum.Vanna,
     title: 'Vanna',
   },
+  {
+    classification: BlockClassificationEnum.Default,
+    type: BlockEnum.FunctionCalling,
+    title: 'Function Call',
+  },
+  // ==== ACM 添加的组件
 ]
 
 export const BLOCK_CLASSIFICATIONS: string[] = [

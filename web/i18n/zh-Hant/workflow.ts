@@ -284,6 +284,7 @@ const translation = {
     'loop-end': '等同於「中斷」。這個節點沒有配置項目。當循環體達到這個節點時，循環終止。',
     'loop': '執行邏輯迴圈，直到滿足終止條件或達到最大迴圈次數。',
     'vanna': '调用大型语言模型回答问题',
+    'function-calling': '自然语言 + 智能接口调度器',
   },
   operator: {
     zoomIn: '放大',

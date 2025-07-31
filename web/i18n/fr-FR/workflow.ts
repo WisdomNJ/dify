@@ -284,6 +284,7 @@ const translation = {
     'loop': 'Exécutez une boucle de logique jusqu\'à ce que la condition de terminaison soit remplie ou que le nombre maximum de boucles soit atteint.',
     'loop-end': 'Équivalent à "break". Ce nœud n\'a pas d\'éléments de configuration. Lorsque le corps de la boucle atteint ce nœud, la boucle se termine.',
     'vanna': 'vanna',
+    'function-calling': '智能接口调度器',
   },
   operator: {
     zoomIn: 'Zoomer',

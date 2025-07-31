@@ -284,6 +284,7 @@ const translation = {
     'loop-end': 'Equivalente a "romper". Este nodo no tiene elementos de configuración. Cuando el cuerpo del bucle alcanza este nodo, el bucle termina.',
     'loop': 'Ejecuta un bucle de lógica hasta que se cumpla la condición de terminación o se alcance el conteo máximo de bucles.',
     'vanna': 'vanna',
+    'function-calling': '智能接口调度器',
   },
   operator: {
     zoomIn: 'Acercar',

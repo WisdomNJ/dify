@@ -284,6 +284,7 @@ const translation = {
     'loop': 'Thực hiện một vòng lặp logic cho đến khi điều kiện dừng được đáp ứng hoặc số lần lặp tối đa được đạt.',
     'loop-end': 'Tương đương với "dừng lại". Nút này không có các mục cấu hình. Khi thân vòng lặp đến nút này, vòng lặp sẽ kết thúc.',
       'vanna': 'vanna',
+      'function-calling': '智能接口调度器',
   },
   operator: {
     zoomIn: 'Phóng to',

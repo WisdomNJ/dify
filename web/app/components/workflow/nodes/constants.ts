@@ -40,6 +40,8 @@ import AgentNode from './agent/node'
 import AgentPanel from './agent/panel'
 import VannaNode from './vanna/node'
 import VannaPanel from './vanna/panel'
+import FunctionCallingNode from './function-calling/node'
+import FunctionCallingPanel from './function-calling/panel'
 import { TransferMethod } from '@/types/app'
 
 export const NodeComponentMap: Record<string, ComponentType<any>> = {
@@ -63,7 +65,10 @@ export const NodeComponentMap: Record<string, ComponentType<any>> = {
   [BlockEnum.DocExtractor]: DocExtractorNode,
   [BlockEnum.ListFilter]: ListFilterNode,
   [BlockEnum.Agent]: AgentNode,
+  // ACM 添加的组件
   [BlockEnum.Vanna]: VannaNode,
+  [BlockEnum.FunctionCalling]: FunctionCallingNode,
+  // ACM 添加的组件
 }
 
 export const PanelComponentMap: Record<string, ComponentType<any>> = {
@@ -87,7 +92,10 @@ export const PanelComponentMap: Record<string, ComponentType<any>> = {
   [BlockEnum.DocExtractor]: DocExtractorPanel,
   [BlockEnum.ListFilter]: ListFilterPanel,
   [BlockEnum.Agent]: AgentPanel,
+  // ACM 添加的组件
   [BlockEnum.Vanna]: VannaPanel,
+  [BlockEnum.FunctionCalling]: FunctionCallingPanel,
+  // ACM 添加的组件
 }
 
 export const CUSTOM_NODE_TYPE = 'custom'

@@ -42,7 +42,10 @@ export enum BlockEnum {
   Loop = 'loop',
   LoopStart = 'loop-start',
   LoopEnd = 'loop-end',
+  // ACM 添加的组件
   Vanna = 'vanna',
+  FunctionCalling = 'function-calling',
+  // ACM 添加的组件
 }
 
 export enum ControlMode {

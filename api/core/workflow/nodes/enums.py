@@ -26,6 +26,7 @@ class NodeType(StrEnum):
     LIST_OPERATOR = "list-operator"
     AGENT = "agent"
     VANNA = "vanna"
+    FUNCTION_CALLING = "function-calling"
 
 
 class ErrorStrategy(StrEnum):
