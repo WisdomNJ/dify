@@ -1,0 +1,112 @@
+{
+  "icon": {
+    "type": "element",
+    "isRootNode": true,
+    "name": "svg",
+    "attributes": {
+      "width": "64",
+      "height": "64",
+      "viewBox": "0 0 64 64",
+      "fill": "none",
+      "xmlns": "http://www.w3.org/2000/svg"
+    },
+    "children": [
+      {
+        "type": "element",
+        "name": "defs",
+        "attributes": {},
+        "children": [
+          {
+            "type": "element",
+            "name": "linearGradient",
+            "attributes": {
+              "id": "grad",
+              "x1": "0",
+              "y1": "0",
+              "x2": "64",
+              "y2": "64",
+              "gradientUnits": "userSpaceOnUse"
+            },
+            "children": [
+              {
+                "type": "element",
+                "name": "stop",
+                "attributes": {
+                  "offset": "0%",
+                  "stop-color": "#00CFFD"
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "name": "stop",
+                "attributes": {
+                  "offset": "100%",
+                  "stop-color": "#3EDF7F"
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "element",
+        "name": "path",
+        "attributes": {
+          "d": "M20 8 H44 V24 H20 Z",
+          "fill": "url(#grad)",
+          "stroke": "none"
+        },
+        "children": []
+      },
+      {
+        "type": "element",
+        "name": "circle",
+        "attributes": {
+          "cx": "32",
+          "cy": "32",
+          "r": "3",
+          "fill": "url(#grad)"
+        },
+        "children": []
+      },
+      {
+        "type": "element",
+        "name": "rect",
+        "attributes": {
+          "x": "12",
+          "y": "44",
+          "width": "12",
+          "height": "12",
+          "fill": "url(#grad)"
+        },
+        "children": []
+      },
+      {
+        "type": "element",
+        "name": "rect",
+        "attributes": {
+          "x": "40",
+          "y": "44",
+          "width": "12",
+          "height": "12",
+          "fill": "url(#grad)"
+        },
+        "children": []
+      },
+      {
+        "type": "element",
+        "name": "path",
+        "attributes": {
+          "d": "M32 24 V29 M32 35 L18 44 M32 35 L46 44",
+          "stroke": "url(#grad)",
+          "stroke-width": "2",
+          "fill": "none"
+        },
+        "children": []
+      }
+    ]
+  },
+  "name": "NL_Interface_Scheduler"
+}
