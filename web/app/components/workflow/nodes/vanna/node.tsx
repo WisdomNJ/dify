@@ -3,15 +3,14 @@ import React from 'react'
 import type { VannaNodeType } from './types'
 import type { NodeProps } from '@/app/components/workflow/types'
 
-import ModelSelector from "@/app/components/header/account-setting/model-provider-page/model-selector";
+import ModelSelector from '@/app/components/header/account-setting/model-provider-page/model-selector'
 import {
-  useTextGenerationCurrentProviderAndModelAndModelList
-} from "@/app/components/header/account-setting/model-provider-page/hooks";
+  useTextGenerationCurrentProviderAndModelAndModelList,
+} from '@/app/components/header/account-setting/model-provider-page/hooks'
 
 const Node: FC<NodeProps<VannaNodeType>> = ({
   data,
 }) => {
-
   const { provider, name: modelId } = data.model || {}
   const {
     textGenerationModelList,

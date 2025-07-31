@@ -35,7 +35,7 @@ export const canRunBySingle = (nodeType: BlockEnum, isChildNode: boolean) => {
     || nodeType === BlockEnum.Agent
     || nodeType === BlockEnum.DocExtractor
     || nodeType === BlockEnum.Loop
-    || nodeType === BlockEnum.Vanna
+    || nodeType === BlockEnum.Vanna // ACM 添加的组件
     || nodeType === BlockEnum.Start
     || nodeType === BlockEnum.IfElse
     || nodeType === BlockEnum.VariableAggregator
