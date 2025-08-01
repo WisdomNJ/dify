@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from vanna.milvus import Milvus_VectorStore
 from pymilvus import DataType, MilvusClient,model
 from collections import defaultdict
+from extensions.utils.userclient import UserClient
 from types import SimpleNamespace
 from openai import OpenAI
 import uuid
@@ -566,26 +567,50 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
         return self.vn.extract_sql(llm_response)
         # return self.vn.generate_sql(question=question)
 
-    def get_api_info(self, question, **kwargs) -> dict:
-        # 获取所有的问句
-        funcs = self.vn.get_related_func(question=question)
-        print(funcs)
-        if len(funcs) == 0:
-            return {}
+    def get_prompt_1(self,json_str : str):
+        prompt = f"""
+        你是接口匹配助手，任务如下：
 
-        wanted_keys = {"description", "params", "id"}
-        api_prompt_list = [{k: v for k, v in f.items() if k in wanted_keys} for f in funcs]
-        # 将字典转换为 JSON 字符串
-        json_str = json.dumps(api_prompt_list, ensure_ascii=False)
+1. 根据用户问句，精准匹配接口文档中唯一一个最相关接口，匹配依据是问句中{{}}内关键字必须完全对应接口params的字段名，且字段类型一致。
+2. 提取或推理接口所需所有参数值，参数类型必须与接口文档完全一致。若参数缺失或类型不符，返回null。
+3. 若问句中关键词未完全匹配任何接口params，返回null。
+4. 若匹配多个接口，返回最符合的一个。
+5. 今天是2025-07-31，支持日期相关参数自动填充。
+6. 输出格式严格为：
+{{
+    "id": "接口主键",
+    "description": "接口说明",
+    "params": {{ param1: 2025, param2: "字符串" }}
+}}
+7. 若无法确定匹配结果，直接返回null。输出结果 要么是json，要么是null
+8. 参数提取时，支持基本类型转换（数字、字符串），不支持复杂类型推断。
+9. 在匹配时，使用严格字符串匹配，不支持模糊匹配。
+10. 示例匹配：
+    问句：“查询{{用户}}的{{订单}}状态”
+    接口params包含"userId"和"orderId"，且问句中关键词"user"、"order"对得上，返回对应接口调用。
+11. 反例：
+    问句：“查询2024年1月的订单”
+    接口对应{{年}}，返回null。
+
+接口文档如下：
+{json_str}
+        """
+        return prompt
+
+    def get_prompt_2(self,json_str : str):
         prompt = f"""
             你是一个接口匹配助手，任务是：
 
             1. 根据接口描述，选出与用户问句最相关的一个接口
             2. 提取或推理出接口所需的参数值
             3. 给出最终的函数调用格式
-            4. 今天是2025-07-27
-            5. 匹配精度要高，参数必须完全匹配，匹配不到返回错误信息
-            6. 注意参数的类型，要与params内保持一致
+            4. 今天是2025-07-31
+            5. 问句与内容要做到精准匹配，{{}}内的关键字要匹配上，不能做到精准匹配的返回null
+            6. {{}}内的关键字要和params对应上，
+            7. 拿不准的情况下，直接返回null
+            8. 参数必须完全匹配，匹配不到返回错误信息
+            9. 注意参数的类型，要与params内保持一致
+            10. 输出结果 要么是json，要么是null
             接口文档如下：
 
             {json_str}
@@ -597,34 +622,60 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
             }}
             - params是参数，参数为空显示空字符串
         """
-        message_prompt = [self.vn.system_message(prompt)]
-        message_prompt.append(self.vn.user_message(question))
-        # 初始化 Ollama 的 OpenAI 接口客户端
-        client = OpenAI(
-            base_url=self.vn.client.base_url,
-            api_key=self.vn.client.api_key,
-        )
-        response = client.chat.completions.create(
-            model= "qwen2.5-coder-7b-instruct",
-            messages=message_prompt,
-            temperature=0.2,
-            max_tokens=8192,
-        )
+        return prompt
 
-        filtered_text = response.choices[0].message.content.strip()
-        cleaned_json_str = filtered_text.replace('```json', '').replace('```', '').strip()
-        cleaned_json_str = cleaned_json_str.strip().strip('`')
-        parsed_dict:dict = json.loads(cleaned_json_str)
-        result = next((f for f in funcs if f.get("id") == parsed_dict["id"]), None)
-        api_info = {**result, **parsed_dict}
-        print(api_info)
+    def get_api_info(self, question, **kwargs) -> dict:
+        # 获取所有的问句
+        funcs = self.vn.get_related_func(question=question)
+        print(funcs)
+        if len(funcs) == 0:
+            return {}
+
+        wanted_keys = {"description", "params", "id", "ext_prompt"}
+        api_prompt_list = [{k: v for k, v in f.items() if k in wanted_keys} for f in funcs]
+
+        client = UserClient()
+        api_info = client.chat(question=question,api_list=api_prompt_list)
+        if api_info:
+            result = next((f for f in funcs if f.get("id") == api_info["id"]), None)
+            api_info = {**result, **api_info}
+
         return api_info
+        # # 将字典转换为 JSON 字符串
+        # json_str = json.dumps(api_prompt_list, ensure_ascii=False)
+        # prompt = self.get_prompt_1(json_str)
+        # message_prompt = [self.vn.system_message(prompt)]
+        # message_prompt.append(self.vn.user_message(question))
+        # # 初始化 Ollama 的 OpenAI 接口客户端
+        # client = OpenAI(
+        #     base_url=self.vn.client.base_url,
+        #     api_key=self.vn.client.api_key,
+        # )
+        # response = client.chat.completions.create(
+        #     model= "qwen2.5-coder-32b-instruct",
+        #     messages=message_prompt,
+        #     temperature=0.2,
+        #     max_tokens=8192,
+        # )
+        #
+        # filtered_text = response.choices[0].message.content.strip()
+        # if not filtered_text or filtered_text == "null":
+        #     return {"id" : ""}
+        #
+        # cleaned_json_str = filtered_text.replace('```json', '').replace('```', '').strip()
+        # print("-------------", cleaned_json_str)
+        # cleaned_json_str = cleaned_json_str.strip().strip('`')
+        # parsed_dict:dict = json.loads(cleaned_json_str)
+        # result = next((f for f in funcs if f.get("id") == parsed_dict["id"]), None)
+        # api_info = {**result, **parsed_dict}
+        # print(api_info)
+        # return api_info
 
     def get_run_text2api(self, question, tenant_id: int, **kwargs) -> dict:
         # 通过模型，匹配最相似的API信息，及参数
         api_info:dict = self.get_api_info(question=question)
         # 验证环节
-        if not api_info["id"]:
+        if "id" not in api_info or not api_info["id"]:
             return {
                 "api_status" : 0
             }
@@ -879,6 +930,7 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
                 ext=item["ext"],
                 type=item["type"],
                 content=item["content"],
+                ext_prompt=item["ext_prompt"],
             )
 
         self.vn.milvus_client.refresh_load(collection_name="vannafunc")
@@ -939,8 +991,8 @@ def make_vanna_class(ChatClass=Ollama):
                 collection_name="vannafunc",
                 anns_field="vector",
                 data=embeddings,
-                limit=20,
-                output_fields=["url","description","params","ext","id","type","content"],
+                limit=10,
+                output_fields=["url","description","params","ext","id","type","content","ext_prompt"],
                 search_params=search_params
             )
             res = res[0]
@@ -953,6 +1005,7 @@ def make_vanna_class(ChatClass=Ollama):
                 ext = doc["entity"]["ext"]
                 type = doc["entity"]["type"]
                 content = doc["entity"]["content"]
+                ext_prompt = doc["entity"]["ext_prompt"]
                 id = doc["entity"]["id"]
                 list_func.append({
                     "id" : id,
@@ -960,6 +1013,7 @@ def make_vanna_class(ChatClass=Ollama):
                     "url" : url,
                     "type" : type,
                     "content" : content,
+                    "ext_prompt" : ext_prompt,
                     "ext" : ext,
                     "description" : description
                 })
@@ -1036,6 +1090,7 @@ def make_vanna_class(ChatClass=Ollama):
                 vannafunc_schema.add_field(field_name="type", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="ext", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="content", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="ext_prompt", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self._embedding_dim)
 
                 vannafunc_index_params = self.milvus_client.prepare_index_params()
@@ -1053,7 +1108,7 @@ def make_vanna_class(ChatClass=Ollama):
                     consistency_level="Strong"
                 )
 
-        def add_func(self, description: str, url: str, params: str, ext : str, type : str, content : str, **kwargs) -> str:
+        def add_func(self, description: str, url: str, params: str, ext : str, type : str, content : str, ext_prompt : str, **kwargs) -> str:
             if len(description) == 0:
                 raise Exception("description can not be null")
             _id = str(uuid.uuid4()) + "-func"
@@ -1068,6 +1123,7 @@ def make_vanna_class(ChatClass=Ollama):
                     "ext" : ext,
                     "type" : type,
                     "content" : content,
+                    "ext_prompt" : ext_prompt,
                     "vector": embedding
                 }
             )
