@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import useConfig from './use-config'
 import type { FunctionCallNodeType } from './types'
 import Field from '@/app/components/workflow/nodes/_base/components/field'
-import type { NodePanelProps } from '@/app/components/workflow/types'
+import type {NodePanelProps, ValueSelector} from '@/app/components/workflow/types'
 import { InputVarType } from '@/app/components/workflow/types'
 import ModelParameterModal from '@/app/components/header/account-setting/model-provider-page/model-parameter-modal'
 import VarReferencePicker from '@/app/components/workflow/nodes/_base/components/variable/var-reference-picker'
@@ -28,6 +28,7 @@ const Panel: FC<NodePanelProps<FunctionCallNodeType>> = (
     inputs,
     handleCompletionParamsChange,
     handleInputVarChange,
+    handleTenantIdChange,
     handleModelChanged,
     isShowSingleRun,
     hideSingleRun,
@@ -118,14 +119,32 @@ const Panel: FC<NodePanelProps<FunctionCallNodeType>> = (
             filterVar={filterVar}
           />
         </Field>
+
+        <Field
+          title={'租户Id'}
+        >
+          <VarReferencePicker
+            readonly={readOnly}
+            nodeId={id}
+            isShowNodeName
+            value={inputs.target_tenant_id || []}
+            onChange={handleTenantIdChange}
+            filterVar={filterVar}
+          />
+        </Field>
       </div>
       <Split />
       <div>
         <OutputVars>
           <VarItem
-            name='output'
-            type='JSON'
-            description={'查询出结果的数据'}
+            name='url'
+            type='String'
+            description={'接口'}
+          />
+          <VarItem
+            name='params'
+            type='Object'
+            description={'参数'}
           />
         </OutputVars>
       </div>

@@ -1,7 +1,9 @@
 import json
 from configs import dify_config
-from typing import List
+from typing import List, Dict
 
+from core.workflow.entities.node_entities import NodeRunResult
+from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
 from dify_app import DifyApp
 from pymilvus import MilvusClient
 from pymilvus.model.base import BaseEmbeddingFunction
@@ -49,25 +51,32 @@ class FunctionCallingServer:
 
     def get_related_func(self, question: str) -> list:
 
+        search_params = {
+            "metric_type": "COSINE",
+            "params": {"nprobe": 8},
+        }
+
         embeddings = self.embedding_function.encode_queries([question])
 
         res = self.milvus_client.search(
             collection_name="vannafunc",
             anns_field="vector",
             data=embeddings,
-            limit=20,
-            output_fields=["url", "description", "params", "ext", "id", "type", "content"],
-            search_params={"metric_type": "COSINE", "params": {"nprobe": 8}}
+            limit=10,
+            output_fields=["url", "description", "params", "ext", "id", "type", "content", "ext_prompt"],
+            search_params=search_params
         )
+        res = res[0]
         list_func = []
-        for doc in res[0]:
+        for doc in res:
             print(doc["distance"])
-            params = json.loads(doc["entity"]["params"])
+            params = json.loads(doc["entity"]["params"]) if doc["entity"]["params"] else {}
             url = doc["entity"]["url"]
             description = doc["entity"]["description"]
             ext = doc["entity"]["ext"]
             type = doc["entity"]["type"]
             content = doc["entity"]["content"]
+            ext_prompt = doc["entity"]["ext_prompt"]
             id = doc["entity"]["id"]
             list_func.append({
                 "id": id,
@@ -75,6 +84,7 @@ class FunctionCallingServer:
                 "url": url,
                 "type": type,
                 "content": content,
+                "ext_prompt": ext_prompt,
                 "ext": ext,
                 "description": description
             })
@@ -89,65 +99,130 @@ class FunctionCallingServer:
     def assistant_message(self, message: str) -> any:
         return {"role": "assistant", "content": message}
 
-    def get_api_info(self, question, model, api_key, base_url) -> dict:
+    def get_system_message(self, ext_prompts: str):
+        prompt = f"""
+        你是一个Ai助手，你需要借助工具，回答用户问题，任务如下：
+        1. 根据用户问句，精准匹配接口文档中唯一一个最相关接口。
+        2. 提取或推理接口所需所有参数值，参数类型必须与接口文档完全一致。
+        3. 参数提取时，支持基本类型转换（数字、字符串），不支持复杂类型推断。
+        4. 在匹配时，使用严格字符串匹配，不支持模糊匹配。
+        5. 今天是2025-07-31，本周日期2025-07-28至2025-08-03，上半年日期：01-01至06-30，前年是2023年
+        6. 所有时间段条件：如果按月查询，开始时间：月初，结束时间：月底，如果是年，开始时间：年初，完成时间：年底，如果是季度，开始时间：季度初，完成时间季度底，如果是本周，开始时间：2025-07-28，结束时间：2025-08-03
+        {ext_prompts}
+        """
+        return {
+            "role": "system",
+            "content": prompt
+        }
+
+    def prepare_tools(self, tools: List[Dict]):
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool["id"],
+                    "description": tool["description"],
+                    "parameters": {
+                        "type": "object",
+                        "properties": tool["params"]
+                    }
+                }
+            }
+            for tool in tools
+        ]
+
+    def get_run_api(self, api_info: dict, tenant_id: int) -> dict:
+        type = api_info["type"]
+        # 获取API 信息
+        ext = api_info["ext"]
+        url = api_info["url"]
+        description = api_info["description"]
+        params = api_info["params"]
+        content = api_info["content"]
+        if not ext:
+            ext = {}
+        if type == "sql":
+            return {
+                "url": url,
+                "api_status": 1,
+                "description": description,
+                "body": {
+                    "sql": content,
+                    "params": params,
+                    "tenantId": tenant_id,
+                    "ext": ext
+                }
+            }
+        else:
+            return {
+                "url": url,
+                "api_status": 1,
+                "description": description,
+                "body": {
+                    "content": content,
+                    "params": params,
+                    "tenantId": tenant_id,
+                    "ext": ext
+                }
+            }
+
+    def get_api_info(self, question, tenant_id, model, api_key, base_url):
         # 获取所有的问句
         funcs = self.get_related_func(question=question)
         if len(funcs) == 0:
             return {}
 
-        wanted_keys = {"description", "params", "id"}
+        wanted_keys = {"description", "params", "id", "ext_prompt"}
         api_prompt_list = [{k: v for k, v in f.items() if k in wanted_keys} for f in funcs]
-        # 将字典转换为 JSON 字符串
-        json_str = json.dumps(api_prompt_list, ensure_ascii=False)
-        prompt = f"""
-            你是一个接口匹配助手，任务是：
+        ext_prompt_list = [f"工具:`{v["id"]}` : \n{v["ext_prompt"]}" for v in api_prompt_list]
+        ext_prompts = "\n".join(ext_prompt_list)
+        system_message = self.get_system_message(ext_prompts=ext_prompts)
 
-            1. 根据接口描述，选出与用户问句最相关的一个接口
-            2. 提取或推理出接口所需的参数值
-            3. 给出最终的函数调用格式
-            4. 今天是2025-07-27
-            5. 匹配精度要高，参数必须完全匹配，匹配不到返回错误信息
-            6. 注意参数的类型，要与params内保持一致
-            接口文档如下：
+        tools = self.prepare_tools(api_prompt_list)
 
-            {json_str}
-            请输出json格式如下：
-            {{
-                "id": "主键",
-                "description": "接口说明",
-                "params": {{ param1: 2025 , param2: "字符串"}}
-            }}
-            - params是参数，参数为空显示空字符串
-        """
-        message_prompt = [self.system_message(prompt)]
-        message_prompt.append(self.user_message(question))
-        # 初始化 Ollama 的 OpenAI 接口客户端
-        client = OpenAI(
-            base_url=base_url,
-            api_key=api_key,
-        )
+        messages = [system_message, self.user_message(question)]
+
+        client = OpenAI(base_url=base_url, api_key=api_key)
         response = client.chat.completions.create(
             model=model,
-            messages=message_prompt,
+            messages=messages,
+            tools=tools,
             temperature=0.2,
             max_tokens=8192,
         )
 
-        filtered_text = response.choices[0].message.content.strip()
-        cleaned_json_str = filtered_text.replace('```json', '').replace('```', '').strip()
-        cleaned_json_str = cleaned_json_str.strip().strip('`')
-        parsed_dict: dict = json.loads(cleaned_json_str)
-        result = next((f for f in funcs if f.get("id") == parsed_dict["id"]), None)
-        api_info = {**result, **parsed_dict}
-        print(api_info)
-        return api_info
+        if response.choices[0].finish_reason != "tool_calls":
+            return response.choices[0].message
+        tool_calls = response.choices[0].message.tool_calls
+
+        api_info = None
+        if len(tool_calls) > 0:
+            for tool_call in tool_calls:
+                name = tool_call.function.name
+                arguments = json.loads(tool_call.function.arguments)
+                api_info = {"id": name, "params": arguments}
+                print(name, arguments)
+
+        if api_info:
+            result = next((f for f in funcs if f.get("id") == api_info["id"]), None)
+            api_info = {**result, **api_info}
+
+        # 验证环节
+        if "id" not in api_info or not api_info["id"]:
+            return {
+                "api_status": 0
+            }
+
+        # 根据API信息，执行接口
+        run_api_info = self.get_run_api(api_info=api_info, tenant_id=tenant_id)
+
+        return run_api_info["url"], run_api_info["body"]
 
 
 function_calling_instance = FunctionCallingServer()
 
 
 def init_app(app: DifyApp):
-
     @app.route('/api/fast_generate_sql2', methods=['GET'])
     def get_api_info():
         question = request.args.get('question')

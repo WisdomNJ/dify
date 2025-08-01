@@ -63,6 +63,8 @@ class FunctionCallingNode(BaseNode):
         node_data = cast(FunctionCallingData, self._node_data)
         variable = self.graph_runtime_state.variable_pool.get(node_data.query)
         query = variable.text if variable else ""
+        variable_tenant_id = self.graph_runtime_state.variable_pool.get(node_data.target_tenant_id)
+        target_tenant_id = variable_tenant_id.text if variable_tenant_id else ""
 
         model_instance, model_config = LLMNode._fetch_model_config(
             node_data_model=node_data.model,
@@ -81,15 +83,15 @@ class FunctionCallingNode(BaseNode):
             case 'langgenius/ollama/ollama':
                 base_url = model_instance.credentials.get('base_url')
 
-        function_calling_instance.get_api_info(
+        url, params = function_calling_instance.get_api_info(
             question=query,
+            tenant_id=target_tenant_id,
             model=model,
             api_key=api_key,
             base_url=base_url
         )
 
-        output = ""
         return NodeRunResult(
             status=WorkflowNodeExecutionStatus.SUCCEEDED,
-            outputs={"output": output}
+            outputs={"url": url, "params": params}
         )

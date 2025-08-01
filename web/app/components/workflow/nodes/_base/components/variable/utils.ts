@@ -536,7 +536,11 @@ const formatItem = (
       case BlockEnum.FunctionCalling: {
           res.vars = [
               {
-                  variable: 'output',
+                  variable: 'url',
+                  type: VarType.string,
+              },
+              {
+                  variable: 'params',
                   type: VarType.object,
               },
           ]

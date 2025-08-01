@@ -11,7 +11,8 @@ import type { Param, ReasoningModeType } from '@/app/components/workflow/nodes/p
 export type FunctionCallNodeType = CommonNodeType & {
     model: ModelConfig
     query: ValueSelector
-    prompt_template: PromptItem[] | PromptItem,
+    target_tenant_id: ValueSelector
+    prompt_template: PromptItem[] | PromptItem
     instruction: string
     reasoning_mode: ReasoningModeType
     parameters: Param[]

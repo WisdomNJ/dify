@@ -95,6 +95,13 @@ const useConfig = (id: string, payload: FunctionCallNodeType) => {
         setInputs(newInputs)
     }, [inputs, setInputs])
 
+    const handleTenantIdChange = useCallback((newInputVar: ValueSelector | string) => {
+        const newInputs = produce(inputs, (draft) => {
+            draft.target_tenant_id = newInputVar as ValueSelector || []
+        })
+        setInputs(newInputs)
+    }, [inputs, setInputs])
+
     const filterVar = useCallback((varPayload: Var) => {
         return [VarType.string].includes(varPayload.type)
     }, [])
@@ -141,6 +148,7 @@ const useConfig = (id: string, payload: FunctionCallNodeType) => {
         setInputVarValues,
         handleModelChanged,
         handleInputVarChange,
+        handleTenantIdChange,
         handleCompletionParamsChange,
         availableVisionVars,
         visionFiles,
