@@ -192,7 +192,7 @@ class FunctionCallingServer:
         )
 
         if response.choices[0].finish_reason != "tool_calls":
-            return response.choices[0].message
+            return None, {}
         tool_calls = response.choices[0].message.tool_calls
 
         api_info = None
