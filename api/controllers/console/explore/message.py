@@ -32,11 +32,11 @@ from services.errors.app import MoreLikeThisDisabledError
 from services.errors.conversation import ConversationNotExistsError
 from services.errors.message import MessageNotExistsError, SuggestedQuestionsAfterAnswerDisabledError
 from services.message_service import MessageService
-
+from libs.infinite_scroll_pagination import InfiniteScrollPagination
 
 class MessageListApi(InstalledAppResource):
 
-    # 解决数据较大，系列化过慢的问题
+    # ACM 解决数据较大，系列化过慢的问题
     # @marshal_with(message_infinite_scroll_pagination_fields)
     def get(self, installed_app):
         app_model = installed_app.app
@@ -54,16 +54,11 @@ class MessageListApi(InstalledAppResource):
             data = MessageService.pagination_by_first_id(
                 app_model, current_user, args["conversation_id"], args["first_id"], args["limit"]
             )
-            # 解决数据较大，系列化过慢的问题
-            items = []
-            if data.data:
-                items = [m.to_dict() for m in data.data]
-            return jsonify({
-                'data': items,  # 假设分页对象里包含 items 列表
-                "limit": data.limit,
-                'has_more': data.has_more,
-            })
-            # return data
+            # ACM 解决数据较大，系列化过慢的问题
+            items = [m.to_dict() for m in data.data] if data.data else []
+
+            return jsonify({"data": items, "limit": data.limit, "has_more": data.has_more})
+            # =============================
         except services.errors.conversation.ConversationNotExistsError:
             raise NotFound("Conversation Not Exists.")
         except services.errors.message.FirstMessageNotExistsError:

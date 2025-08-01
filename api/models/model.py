@@ -1190,6 +1190,7 @@ class Message(Base):
             "answer": self.answer,
             "status": self.status,
             "error": self.error,
+            "retriever_resources": self.retriever_resources,
             "message_metadata": self.message_metadata_dict,
             "from_source": self.from_source,
             "from_end_user_id": self.from_end_user_id,
