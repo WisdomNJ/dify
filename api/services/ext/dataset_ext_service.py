@@ -53,7 +53,7 @@ class DatasetExtService:
                 args = get_init_full_text_knowledge_config({})
             else:
                 args = get_init_knowledge_config({})
-            keys_to_override = ['indexing_technique', 'process_rule', 'doc_form'
+            keys_to_override = ['indexing_technique', 'doc_form'
                 ,'doc_language','retrieval_model','embedding_model','embedding_model_provider']
 
             args.update({k: dataset_dict[k] for k in keys_to_override if k in dataset_dict and dataset_dict[k] is not None})

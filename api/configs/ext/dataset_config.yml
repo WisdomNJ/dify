@@ -15,8 +15,8 @@ process_rule:
         enabled: true
     segmentation:
       separator: '&&&&&'
-      max_tokens: 500
-      chunk_overlap: 50
+      max_tokens: 2048
+      chunk_overlap: 100
   mode: custom
 doc_form: text_model
 doc_language: Chinese
