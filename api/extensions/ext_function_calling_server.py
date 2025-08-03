@@ -178,12 +178,19 @@ class FunctionCallingServer:
         if len(funcs) > 0:
             for func in funcs:
                 word_keys = func["word_keys"]
+                description = func["description"]
+                word = func["word"]
+                synonym = func["synonym"]
                 if word_keys:
                     word_keys = json.loads(word_keys)
                     target_required = word_keys["required"]
                     target_un_required = word_keys["un_required"]
-                    ok = api_desc_match(question_text=question, target_required=target_required,
-                                        target_un_required=target_un_required)
+                    ok = api_desc_match(question_text=question,
+                                        name = description,
+                                        target_required=target_required,
+                                        target_un_required=target_un_required,
+                                        word=word,
+                                        synonym=synonym )
                     if ok:
                         return [func]
         return []
