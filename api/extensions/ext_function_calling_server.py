@@ -159,8 +159,8 @@ class FunctionCallingServer:
                 "api_status": 1,
                 "description": description,
                 "body": {
+                    **params,
                     "content": content,
-                    "params": params,
                     "tenantId": tenant_id,
                     "ext": ext
                 }
