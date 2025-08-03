@@ -284,16 +284,16 @@ def get_main_keywords_texts_test(query_text: str) -> list[str]:
 
     return main_keywords_texts__
 
-from fuzzywuzzy import fuzz,process
-
 # 自定义的同义词词典（示例）
 synonym_dict = {
     "回款": ["收款","收款金额", "款项", "支付", "款项回收","项目回款","项目回款金额", "回款金额"],
+    "工时": ["消耗工时","项目工时","耗费","耗费","花费","消费掉","耗费工时","耗费工时","花费工时","消费掉工时"],
     "项目": ["工程", "Project"],
     "指定日期": ["本周", "本月", "上个月", "上N个月", "上N个月"],
+    "异常": ["不匹配", "滞后"],
     "某某项目": ["工程", "计划", "任务", "工程项目"],
 }
-new_words = ["航空工业项目","602所","指定日期","某某项目","回款计划"]
+new_words = ["航空工业项目","602所","指定日期","某某项目","回款计划","项目工时","项目回款","消耗工时","不匹配"]
 # 1. 中文分词
 def segment_text(text):
     main_keywords_texts__ = jieba.analyse.extract_tags(text, topK=200, withWeight=False)
@@ -325,7 +325,10 @@ def api_desc_match(question_text:str, target_required:str, target_un_required: s
     query_list = replace_synonyms(question_text)
     target_required_list = replace_synonyms(target_required)
     target_un_requiredlist = replace_synonyms(target_un_required)
-
+    print("query_list",query_list)
+    print("target_required_list",target_required_list)
+    print("target_un_requiredlist",target_un_requiredlist)
+    import pdb; pdb.set_trace()
     # 判断必要关键字是否全部匹配
     if set(target_required_list).issubset(set(query_list)):
         # 去除必要关键字
@@ -352,11 +355,6 @@ def api_desc_match(question_text:str, target_required:str, target_un_required: s
     # # match_score = fuzz.ratio(query, target)
     # return match_score
 
-# 4. 找出最匹配的目标字符串
-def best_match(query, target_list):
-    match = process.extractOne(query, choices=target_list,scorer=fuzz.partial_ratio)
-    return match
-
 if __name__ == "__main__":
 
     # 示例
@@ -370,10 +368,6 @@ if __name__ == "__main__":
     # 获取模糊匹配分数
     match_score = api_desc_match(query, "本周回款计划", "某某项目")
     print(f"模糊匹配分数：{match_score}")
-
-    # 找出最佳匹配
-    best = best_match(query, target_list)
-    print(f"最匹配的项：{best}")
 
     # print(merge_strings("第二","二层"))
     # get_keywords("我的")

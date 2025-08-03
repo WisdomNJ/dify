@@ -63,7 +63,7 @@ class FunctionCallingServer:
             anns_field="vector",
             data=embeddings,
             limit=10,
-            output_fields=["url", "description", "params", "ext", "id", "type", "content", "ext_prompt","work_keys"],
+            output_fields=["url", "description", "params", "ext", "id", "type", "content", "ext_prompt","word_keys"],
             search_params=search_params
         )
         res = res[0]
@@ -76,7 +76,7 @@ class FunctionCallingServer:
             ext = doc["entity"]["ext"]
             type = doc["entity"]["type"]
             content = doc["entity"]["content"]
-            work_keys = doc["entity"]["work_keys"]
+            word_keys = doc["entity"]["word_keys"]
             ext_prompt = doc["entity"]["ext_prompt"]
             id = doc["entity"]["id"]
             list_func.append({
@@ -85,7 +85,7 @@ class FunctionCallingServer:
                 "url": url,
                 "type": type,
                 "content": content,
-                "work_keys": work_keys,
+                "word_keys": word_keys,
                 "ext_prompt": ext_prompt,
                 "ext": ext,
                 "description": description
@@ -174,8 +174,8 @@ class FunctionCallingServer:
                 word_keys = func["word_keys"]
                 if word_keys:
                     word_keys = json.loads(word_keys)
-                    target_required = word_keys["target_required"]
-                    target_un_required = word_keys["target_un_required"]
+                    target_required = word_keys["required"]
+                    target_un_required = word_keys["un_required"]
                     ok = api_desc_match(question_text=question,target_required=target_required,target_un_required=target_un_required)
                     if ok:
                         return [func]
