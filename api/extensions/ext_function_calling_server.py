@@ -234,9 +234,7 @@ class FunctionCallingServer:
 
         # 验证环节
         if "id" not in api_info or not api_info["id"]:
-            return {
-                "api_status": 0
-            }
+            return None, {}
 
         # 根据API信息，执行接口
         run_api_info = self.get_run_api(api_info=api_info, tenant_id=tenant_id)
