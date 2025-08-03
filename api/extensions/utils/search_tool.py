@@ -278,15 +278,105 @@ def score(value):
 def get_main_keywords_texts_test(query_text: str) -> list[str]:
     # 判断关键词的长度
     jieba.analyse.set_stop_words("d://stopwords.txt")
-    # jieba.analyse.set_idf_path("extensions/utils/idfwords.txt")
+    jieba.analyse.set_idf_path("extensions/utils/idfwords.txt")
     # 提取关键词，默认 topK=30，withWeight=True
     main_keywords_texts__ = jieba.analyse.extract_tags(query_text, topK=200, withWeight=False)
 
     return main_keywords_texts__
 
+from fuzzywuzzy import fuzz,process
+
+# 自定义的同义词词典（示例）
+synonym_dict = {
+    "回款": ["收款","收款金额", "款项", "支付", "款项回收","项目回款","项目回款金额", "回款金额"],
+    "项目": ["工程", "Project"],
+    "指定日期": ["本周", "本月", "上个月", "上N个月", "上N个月"],
+    "某某项目": ["工程", "计划", "任务", "工程项目"],
+}
+new_words = ["航空工业项目","602所","指定日期","某某项目","回款计划"]
+# 1. 中文分词
+def segment_text(text):
+    main_keywords_texts__ = jieba.analyse.extract_tags(text, topK=200, withWeight=False)
+    return list(main_keywords_texts__)
+    # return list(jieba.cut(text))
+
+def add_words(words:list[str]):
+    if words:
+        for word in words:
+            jieba.add_word(word,freq=20000, tag='n')
+
+# 2. 同义词替换函数
+def replace_synonyms(text):
+    # 分词
+    words = segment_text(text)
+    for i, word in enumerate(words):
+        for key, synonyms in synonym_dict.items():
+            if word in synonyms:
+                words[i] = key  # 用标准词替换
+                break
+    return words
+
+# 3. 计算模糊匹配分数
+def api_desc_match(question_text:str, target_required:str, target_un_required: str):
+
+    jieba.analyse.set_stop_words("d://stopwords.txt")
+    add_words(new_words)
+    # 先替换同义词
+    query_list = replace_synonyms(question_text)
+    target_required_list = replace_synonyms(target_required)
+    target_un_requiredlist = replace_synonyms(target_un_required)
+
+    # 判断必要关键字是否全部匹配
+    if set(target_required_list).issubset(set(query_list)):
+        # 去除必要关键字
+        last_list = list(set(query_list) - set(target_required_list))
+        # 判断c是否还有数据
+        if len(last_list) > 0:
+            # 从条件内去除选填的key
+            last_list = list(set(last_list) - set(target_un_requiredlist))
+        if len(last_list) == 0:
+            return True
+    return False
+
+    # query_len = len(query_list)
+    # target_len = len(target_list)
+    #
+    # common_list = set(query_list).intersection(target_list)
+    # common_len = len(common_list)
+    #
+    # if query_len == target_len:
+    #     if common_len == target_len:
+    #         return 100
+    # # 计算模糊匹配度
+    # # match_score = fuzz.partial_ratio(query, target)
+    # # match_score = fuzz.ratio(query, target)
+    # return match_score
+
+# 4. 找出最匹配的目标字符串
+def best_match(query, target_list):
+    match = process.extractOne(query, choices=target_list,scorer=fuzz.partial_ratio)
+    return match
+
 if __name__ == "__main__":
+
+    # 示例
+    query = "某某项目本周回款计划"
+    target = "指定日期的回款计划"
+    target_list = [
+        "指定日期的回款计划",
+        "指定日期回款金额",
+        "回款与消耗工时不匹配的项目"
+    ]
+    # 获取模糊匹配分数
+    match_score = api_desc_match(query, "本周回款计划", "某某项目")
+    print(f"模糊匹配分数：{match_score}")
+
+    # 找出最佳匹配
+    best = best_match(query, target_list)
+    print(f"最匹配的项：{best}")
+
     # print(merge_strings("第二","二层"))
-    get_keywords("我的")
+    # get_keywords("我的")
     # search_texts=["湖人","阵容"]
     # score, max_index_list =get_full_search_text_max_score(search_texts=search_texts, source="所以，**严格讲，詹姆斯在湖人确实拥有超级巨星（戴维斯），但不像热火三巨头那样多核并立。**更多时候，他还是湖人阵容的绝对核心和领袖。")
     # print(score, len(max_index_list))

@@ -11,7 +11,7 @@ from flask import jsonify, request
 from openai import OpenAI
 import ollama
 import numpy as np
-
+from extensions.utils.search_tool import api_desc_match
 
 # 自定义嵌入式模型（适配milvus向量数据库）
 class CustomEmbeddingFunction(BaseEmbeddingFunction):
@@ -63,7 +63,7 @@ class FunctionCallingServer:
             anns_field="vector",
             data=embeddings,
             limit=10,
-            output_fields=["url", "description", "params", "ext", "id", "type", "content", "ext_prompt"],
+            output_fields=["url", "description", "params", "ext", "id", "type", "content", "ext_prompt","work_keys"],
             search_params=search_params
         )
         res = res[0]
@@ -76,6 +76,7 @@ class FunctionCallingServer:
             ext = doc["entity"]["ext"]
             type = doc["entity"]["type"]
             content = doc["entity"]["content"]
+            work_keys = doc["entity"]["work_keys"]
             ext_prompt = doc["entity"]["ext_prompt"]
             id = doc["entity"]["id"]
             list_func.append({
@@ -84,6 +85,7 @@ class FunctionCallingServer:
                 "url": url,
                 "type": type,
                 "content": content,
+                "work_keys": work_keys,
                 "ext_prompt": ext_prompt,
                 "ext": ext,
                 "description": description
@@ -166,9 +168,26 @@ class FunctionCallingServer:
                 }
             }
 
+    def filter_api_info(self,question,funcs):
+        if len(funcs) > 0:
+            for func in funcs:
+                word_keys = func["word_keys"]
+                if word_keys:
+                    word_keys = json.loads(word_keys)
+                    target_required = word_keys["target_required"]
+                    target_un_required = word_keys["target_un_required"]
+                    ok = api_desc_match(question_text=question,target_required=target_required,target_un_required=target_un_required)
+                    if ok:
+                        return [func]
+        return []
+
     def get_api_info(self, question, tenant_id, model, api_key, base_url):
+
         # 获取所有的问句
         funcs = self.get_related_func(question=question)
+        import pdb; pdb.set_trace()
+        # 分词过滤
+        funcs = self.filter_api_info(question=question,funcs=funcs)
         if len(funcs) == 0:
             return {}
 
@@ -226,11 +245,13 @@ def init_app(app: DifyApp):
     @app.route('/api/fast_generate_sql2', methods=['GET'])
     def get_api_info():
         question = request.args.get('question')
+        tenant_id = request.args.get('tenant_id')
         result = function_calling_instance.get_api_info(
             question=question,
             model=dify_config.VANNA_MODEL,
             api_key=dify_config.VANNA_API_KEY,
-            base_url=dify_config.VANNA_OLLAMA_HOST
+            base_url=dify_config.VANNA_OLLAMA_HOST,
+            tenant_id=tenant_id
         )
 
         return jsonify(
