@@ -13,6 +13,7 @@ import ollama
 import numpy as np
 from extensions.utils.search_tool import api_desc_match
 
+
 # 自定义嵌入式模型（适配milvus向量数据库）
 class CustomEmbeddingFunction(BaseEmbeddingFunction):
 
@@ -63,7 +64,8 @@ class FunctionCallingServer:
             anns_field="vector",
             data=embeddings,
             limit=10,
-            output_fields=["url", "description", "params", "ext", "id", "type", "content", "ext_prompt","word_keys"],
+            output_fields=["url", "description", "params", "ext", "id", "type", "content", "ext_prompt", "word_keys",
+                           "synonym", "word"],
             search_params=search_params
         )
         res = res[0]
@@ -77,6 +79,8 @@ class FunctionCallingServer:
             type = doc["entity"]["type"]
             content = doc["entity"]["content"]
             word_keys = doc["entity"]["word_keys"]
+            synonym = doc["entity"]["synonym"]
+            word = doc["entity"]["word"]
             ext_prompt = doc["entity"]["ext_prompt"]
             id = doc["entity"]["id"]
             list_func.append({
@@ -86,6 +90,8 @@ class FunctionCallingServer:
                 "type": type,
                 "content": content,
                 "word_keys": word_keys,
+                "synonym": synonym,
+                "word": word,
                 "ext_prompt": ext_prompt,
                 "ext": ext,
                 "description": description
@@ -168,7 +174,7 @@ class FunctionCallingServer:
                 }
             }
 
-    def filter_api_info(self,question,funcs):
+    def filter_api_info(self, question, funcs):
         if len(funcs) > 0:
             for func in funcs:
                 word_keys = func["word_keys"]
@@ -176,7 +182,8 @@ class FunctionCallingServer:
                     word_keys = json.loads(word_keys)
                     target_required = word_keys["required"]
                     target_un_required = word_keys["un_required"]
-                    ok = api_desc_match(question_text=question,target_required=target_required,target_un_required=target_un_required)
+                    ok = api_desc_match(question_text=question, target_required=target_required,
+                                        target_un_required=target_un_required)
                     if ok:
                         return [func]
         return []
@@ -185,9 +192,10 @@ class FunctionCallingServer:
 
         # 获取所有的问句
         funcs = self.get_related_func(question=question)
-        import pdb; pdb.set_trace()
+        import pdb;
+        pdb.set_trace()
         # 分词过滤
-        funcs = self.filter_api_info(question=question,funcs=funcs)
+        funcs = self.filter_api_info(question=question, funcs=funcs)
         if len(funcs) == 0:
             return {}
 

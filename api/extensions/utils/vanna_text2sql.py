@@ -932,6 +932,8 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
                 content=item["content"],
                 ext_prompt=item["ext_prompt"],
                 word_keys=item["word_keys"],
+                synonym=item["synonym"],
+                word=item["word"],
             )
 
         self.vn.milvus_client.refresh_load(collection_name="vannafunc")
@@ -993,7 +995,7 @@ def make_vanna_class(ChatClass=Ollama):
                 anns_field="vector",
                 data=embeddings,
                 limit=10,
-                output_fields=["url","description","params","ext","id","type","content","ext_prompt","word_keys"],
+                output_fields=["url","description","params","ext","id","type","content","ext_prompt","word_keys", "synonym", "word"],
                 search_params=search_params
             )
             res = res[0]
@@ -1008,6 +1010,8 @@ def make_vanna_class(ChatClass=Ollama):
                 content = doc["entity"]["content"]
                 ext_prompt = doc["entity"]["ext_prompt"]
                 word_keys = doc["entity"]["word_keys"]
+                synonym = doc["entity"]["synonym"]
+                word = doc["entity"]["word"]
                 id = doc["entity"]["id"]
                 list_func.append({
                     "id" : id,
@@ -1017,6 +1021,8 @@ def make_vanna_class(ChatClass=Ollama):
                     "content" : content,
                     "ext_prompt" : ext_prompt,
                     "word_keys" : word_keys,
+                    "synonym" : synonym,
+                    "word" : word,
                     "ext" : ext,
                     "description" : description
                 })
@@ -1095,6 +1101,8 @@ def make_vanna_class(ChatClass=Ollama):
                 vannafunc_schema.add_field(field_name="content", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="ext_prompt", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="word_keys", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="synonym", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="word", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self._embedding_dim)
 
                 vannafunc_index_params = self.milvus_client.prepare_index_params()
@@ -1112,7 +1120,8 @@ def make_vanna_class(ChatClass=Ollama):
                     consistency_level="Strong"
                 )
 
-        def add_func(self, description: str, url: str, params: str, ext : str, type : str, content : str, ext_prompt : str, word_keys: str) -> str:
+        def add_func(self, description: str, url: str, params: str, ext : str, type : str,
+                     content : str, ext_prompt : str, word_keys: str, synonym: str, word: str) -> str:
             if len(description) == 0:
                 raise Exception("description can not be null")
             _id = str(uuid.uuid4()) + "-func"
@@ -1125,6 +1134,8 @@ def make_vanna_class(ChatClass=Ollama):
                     "url" : url,
                     "params" : params,
                     "word_keys": word_keys,
+                    "synonym": synonym,
+                    "word": word,
                     "ext" : ext,
                     "type" : type,
                     "content" : content,
