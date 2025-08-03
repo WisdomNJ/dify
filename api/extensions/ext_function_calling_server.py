@@ -192,12 +192,10 @@ class FunctionCallingServer:
 
         # 获取所有的问句
         funcs = self.get_related_func(question=question)
-        import pdb;
-        pdb.set_trace()
         # 分词过滤
         funcs = self.filter_api_info(question=question, funcs=funcs)
         if len(funcs) == 0:
-            return {}
+            return None, {}
 
         wanted_keys = {"description", "params", "id", "ext_prompt"}
         api_prompt_list = [{k: v for k, v in f.items() if k in wanted_keys} for f in funcs]
@@ -254,7 +252,7 @@ def init_app(app: DifyApp):
     def get_api_info():
         question = request.args.get('question')
         tenant_id = request.args.get('tenant_id')
-        result = function_calling_instance.get_api_info(
+        url, params = function_calling_instance.get_api_info(
             question=question,
             model=dify_config.VANNA_MODEL,
             api_key=dify_config.VANNA_API_KEY,
@@ -264,6 +262,7 @@ def init_app(app: DifyApp):
 
         return jsonify(
             {
-                "result": result,
+                "url": url,
+                "params": params,
             }
         ), 200
