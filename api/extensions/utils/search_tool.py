@@ -319,7 +319,7 @@ def replace_synonyms(text):
 # 3. 计算模糊匹配分数
 def api_desc_match(question_text:str, target_required:str, target_un_required: str):
 
-    jieba.analyse.set_stop_words("d://stopwords.txt")
+    jieba.analyse.set_stop_words("extensions/utils/stopwords.txt")
     add_words(new_words)
     # 先替换同义词
     query_list = replace_synonyms(question_text)
