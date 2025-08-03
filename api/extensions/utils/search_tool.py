@@ -285,7 +285,7 @@ def get_main_keywords_texts_test(query_text: str) -> list[str]:
     return main_keywords_texts__
 
 # 自定义的同义词词典（示例）
-synonym_dict = {
+default_synonym_dict = {
     "回款": ["收款","收款金额", "款项", "支付", "款项回收","项目回款","项目回款金额", "回款金额"],
     "工时": ["消耗工时","项目工时","耗费","耗费","花费","消费掉","耗费工时","耗费工时","花费工时","消费掉工时"],
     "项目": ["工程", "Project"],
@@ -306,7 +306,7 @@ def add_words(words:list[str]):
             jieba.add_word(word,freq=20000, tag='n')
 
 # 2. 同义词替换函数
-def replace_synonyms(text):
+def replace_synonyms(text,synonym_dict):
     # 分词
     words = segment_text(text)
     for i, word in enumerate(words):
@@ -316,19 +316,56 @@ def replace_synonyms(text):
                 break
     return words
 
-# 3. 计算模糊匹配分数
-def api_desc_match(question_text:str, target_required:str, target_un_required: str):
+def contains_placeholder_date(s):
+    patterns = [
+        r'\d{4}年\d{1,2}月\d{1,2}日',
+        r'\d{4}-\d{1,2}-\d{1,2}',
+        r'\d{4}/\d{1,2}/\d{1,2}',
+    ]
+    for pattern in patterns:
+        a =  bool(re.search(pattern, s))
+        if a:
+            # 使用 findall 提取所有匹配
+            matches = re.findall(pattern, s)
+            return a,matches
+    return False,[]
 
+def handle_question(question:str):
+    flg,matches = contains_placeholder_date(question)
+
+
+# 3. 计算模糊匹配分数
+def api_desc_match(question_text:str,
+                   target_required:str,
+                   target_un_required: str,
+                   word : str,
+                   synonym : str,):
     jieba.analyse.set_stop_words("extensions/utils/stopwords.txt")
-    add_words(new_words)
+    # jieba.analyse.set_stop_words("d://stopwords.txt")
+
+    word_list = word.split(",") if word else []
+    new_synonym_dict:dict = {**default_synonym_dict}
+    if synonym:
+        synonym_dict = json.loads(synonym)
+        for key in synonym_dict.keys():
+            original = synonym_dict[key]
+            values = original.split(",") if original else []
+            if key in new_synonym_dict:
+                ds = new_synonym_dict[key]
+                if ds:
+                    values = ds + values
+            new_synonym_dict[key] = values
+
+    word_list = new_words + word_list
+    add_words(word_list)
+
     # 先替换同义词
-    query_list = replace_synonyms(question_text)
-    target_required_list = replace_synonyms(target_required)
-    target_un_requiredlist = replace_synonyms(target_un_required)
+    query_list = replace_synonyms(question_text,new_synonym_dict)
+    target_required_list = replace_synonyms(target_required,new_synonym_dict)
+    target_un_requiredlist = replace_synonyms(target_un_required,new_synonym_dict)
     print("query_list",query_list)
     print("target_required_list",target_required_list)
     print("target_un_requiredlist",target_un_requiredlist)
-    import pdb; pdb.set_trace()
     # 判断必要关键字是否全部匹配
     if set(target_required_list).issubset(set(query_list)):
         # 去除必要关键字
@@ -365,8 +402,9 @@ if __name__ == "__main__":
         "指定日期回款金额",
         "回款与消耗工时不匹配的项目"
     ]
+    synonym = "{\"指定日期\" : \"FFFF,GGGG,EEE\" }"
     # 获取模糊匹配分数
-    match_score = api_desc_match(query, "本周回款计划", "某某项目")
+    match_score = api_desc_match(query, target_required="本周回款计划", target_un_required="某某项目",word="AB,CD,EF", synonym=synonym )
     print(f"模糊匹配分数：{match_score}")
 
     # print(merge_strings("第二","二层"))
