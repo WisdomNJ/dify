@@ -115,7 +115,7 @@ class FunctionCallingServer:
         3. 参数提取时，支持基本类型转换（数字、字符串），不支持复杂类型推断。
         4. 在匹配时，使用严格字符串匹配，不支持模糊匹配。
         5. 今天是2025-08-04，本周日期2025-08-04至2025-08-10，上半年日期：01-01至06-30，前年是2023年
-        6. 所有时间段条件：如果按月查询，开始时间：月初，结束时间：月底，如果是年，开始时间：年初，完成时间：年底，如果是季度，开始时间：季度初，完成时间季度底，如果是本周，开始时间：2025-07-28，结束时间：2025-08-03
+        6. 所有时间段条件：如果按月查询，开始时间：月初，结束时间：月底，如果是年，开始时间：年初，完成时间：年底，如果是季度，开始时间：季度初，完成时间季度底
         {ext_prompts}
         """
         return {
@@ -139,7 +139,7 @@ class FunctionCallingServer:
             for tool in tools
         ]
 
-    def get_run_api(self, api_info: dict, tenant_id: int) -> dict:
+    def get_run_api(self, api_info: dict, question : str, tenant_id: int) -> dict:
         type = api_info["type"]
         # 获取API 信息
         ext = api_info["ext"]
@@ -170,7 +170,8 @@ class FunctionCallingServer:
                     **params,
                     "content": content,
                     "tenantId": tenant_id,
-                    "ext": ext
+                    "ext": ext,
+                    "question" : question
                 }
             }
 
@@ -244,7 +245,7 @@ class FunctionCallingServer:
             return None, {}
 
         # 根据API信息，执行接口
-        run_api_info = self.get_run_api(api_info=api_info, tenant_id=tenant_id)
+        run_api_info = self.get_run_api(api_info=api_info, question=question, tenant_id=tenant_id)
 
         return run_api_info["url"], run_api_info["body"]
 
