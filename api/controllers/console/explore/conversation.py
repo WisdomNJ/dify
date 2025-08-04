@@ -76,7 +76,7 @@ class ConversationBatchApi(InstalledAppResource):
         if app_mode not in {AppMode.CHAT, AppMode.AGENT_CHAT, AppMode.ADVANCED_CHAT}:
             raise NotChatAppError()
 
-        conv_ids = conv_ids = ast.literal_eval(args['conv_ids'])
+        conv_ids = ast.literal_eval(args['conv_ids'])
 
 
         try:

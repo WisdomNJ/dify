@@ -1,4 +1,5 @@
 from collections.abc import Callable, Sequence
+from datetime import datetime, UTC
 from typing import Optional, Union
 
 from sqlalchemy import asc, desc, func, or_, select
