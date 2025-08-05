@@ -12,6 +12,7 @@ from openai import OpenAI
 import ollama
 import numpy as np
 from extensions.utils.search_tool import api_desc_match
+import extensions.utils.date_utils as date_utils
 
 
 # 自定义嵌入式模型（适配milvus向量数据库）
@@ -108,13 +109,14 @@ class FunctionCallingServer:
         return {"role": "assistant", "content": message}
 
     def get_system_message(self, ext_prompts: str):
+
         prompt = f"""
         你是一个Ai助手，你需要借助工具，回答用户问题，任务如下：
         1. 根据用户问句，精准匹配接口文档中唯一一个最相关接口。
         2. 提取或推理接口所需所有参数值，参数类型必须与接口文档完全一致。
         3. 参数提取时，支持基本类型转换（数字、字符串），不支持复杂类型推断。
         4. 在匹配时，使用严格字符串匹配，不支持模糊匹配。
-        5. 今天是2025-08-04，本周日期2025-08-04至2025-08-10，上半年日期：01-01至06-30，前年是2023年
+        5. 今天是{date_utils.get_today()}，本周日期{date_utils.get_this_week_start()}至{date_utils.get_this_week_end()}，上半年日期：01-01至06-30，前年是{date_utils.this_last_year(2)}年
         6. 所有时间段条件：如果按月查询，开始时间：月初，结束时间：月底，如果是年，开始时间：年初，完成时间：年底，如果是季度，开始时间：季度初，完成时间季度底
         {ext_prompts}
         """
