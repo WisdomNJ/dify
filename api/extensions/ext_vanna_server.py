@@ -255,6 +255,13 @@ def init_app(app: DifyApp):
             }
         )
 
+    @app.route('/api/document/list', methods=['GET'])
+    def find_documents():
+        supplier = request.args.get('supplier','')
+        server = get_vn_instance(supplier)
+        data = server.find_documents()
+        return jsonify(data) , 200
+
     @app.route('/api/training/data/import', methods=['POST'])
     def training_data_import():
 
