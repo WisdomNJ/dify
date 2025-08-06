@@ -22,7 +22,6 @@ class Config:
         self.milvus_database = dify_config.VANNA_MILVUS_DATABASE
         self.embedding_host = dify_config.VANNA_EMBEDDING_HOST
         self.embedding_model = dify_config.VANNA_EMBEDDING_MODEL
-        self.embedding_type = dify_config.VANNA_EMBEDDING_TYPE
         self.supplier = supplier
         self.sql_type = 'postgres'
         self.sql_config = {

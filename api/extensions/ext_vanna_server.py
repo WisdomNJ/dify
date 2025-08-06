@@ -5,11 +5,9 @@ from extensions.utils.vanna_text2sql import VannaServer
 from dotenv import load_dotenv
 load_dotenv()
 from dify_app import DifyApp
-from flask import Flask, jsonify, Response, request
-import flask
+from flask import jsonify, Response, request
 from werkzeug.exceptions import BadRequest
 import logging
-import plotly.io as pio
 from functools import lru_cache
 from datetime import datetime
 from extensions.utils.vanna_text2sql_tool import handle_sql
@@ -21,14 +19,7 @@ class Config:
         self.milvus_database = dify_config.VANNA_MILVUS_DATABASE
         self.embedding_host = dify_config.VANNA_EMBEDDING_HOST
         self.embedding_model = dify_config.VANNA_EMBEDDING_MODEL
-        self.embedding_type = dify_config.VANNA_EMBEDDING_TYPE
         self.supplier = supplier
-        # self.llm_type = 'tongyi'
-        # self.model = 'qwen-max'
-        # self.api_key = 'sk-ba5d240e2dc0483e9e24404d957a15d5'
-        # 本地模型
-        # self.ollama_host = 'http://wsd.wisdomidata.com:19042'
-        # self.model = 'qwen2:7b'
         self.llm_type = dify_config.VANNA_LLM_TYPE
         self.model = dify_config.VANNA_MODEL
         self.ollama_host = dify_config.VANNA_OLLAMA_HOST

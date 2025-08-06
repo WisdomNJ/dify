@@ -3,6 +3,8 @@ import json
 from vanna.ollama import Ollama
 from vanna.qianwen import QianWenAI_Chat
 from vanna.deepseek import DeepSeekChat
+
+from configs import dify_config
 from extensions.utils.rewrite_ask import ask
 from dotenv import load_dotenv
 from vanna.milvus import Milvus_VectorStore
@@ -12,6 +14,9 @@ from extensions.utils.userclient import UserClient
 from types import SimpleNamespace
 from openai import OpenAI
 import uuid
+
+from models import Embedding
+
 load_dotenv()
 # 设置显示后端为浏览器
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
@@ -22,39 +27,41 @@ import numpy as np
 from pymilvus.model.base import BaseEmbeddingFunction
 # 自定义嵌入式模型（适配milvus向量数据库）
 class CustomEmbeddingFunction(BaseEmbeddingFunction):
-    def __init__(self, config=None):
-        model_host = config['host'] if "host" in config else 'http://wsd.wisdomidata.com:19042'
-        self.embed_model = config['embed_model'] if "embed_model" in config else 'BAAI/bge-m3'
-        self.embedding_model = ollama.Client(model_host)
-        self.keep_alive = config.get('keep_alive', None)
-        self.ollama_options = config.get('options', {})
-        self.num_ctx = self.ollama_options.get('num_ctx', 2048)
+    def __init__(self):
+        self.embed_model = dify_config.VANNA_EMBEDDING_MODEL
+        self.embedding_model = OpenAI(
+            base_url=dify_config.VANNA_EMBEDDING_HOST,
+            api_key=dify_config.VANNA_EMBEDDING_API_KEY,
+        )
 
     def __call__(self, texts: List[str]):
         self._encode(texts)
-    def _encode(self,texts: list[str]) -> list[list[float]]:
-        return [self.embedding_model.embeddings(
+
+    def _encode(self, texts: list[str]) -> list[Embedding]:
+        embeddings = self.embedding_model.embeddings.create(
             model=self.embed_model,
-            prompt=text,
-            options=self.ollama_options,
-            keep_alive=self.keep_alive
-        )["embedding"] for text in texts]
+            input=texts,
+        )
+        return [embedding.embedding for embedding in embeddings.data]
+
     def encode_documents(self, documents: List[str]) -> List[np.array]:
-        # 将每个嵌入结果转换为 np.ndarray
-        embeddings = self._encode(documents)
-        return [np.array(embedding) for embedding in embeddings]
+        response = self._encode(documents)
+        return [np.array(embedding) for embedding in response]
+
     def encode_queries(self, queries: List[str]) -> List[np.array]:
-        embeddings = self._encode(queries)
-        return [np.array(embedding) for embedding in embeddings]
+        response = self._encode(queries)
+        return [np.array(embedding) for embedding in response]
+
+custom_embedding_instance = CustomEmbeddingFunction()
 
 class VannaServer:
     def __init__(self, config):
         self.config = config
         self.vn = self._initialize_vn()
+        self.embedding_function = custom_embedding_instance
 
     def _initialize_vn(self):
         config = self.config
-        supplier = config["supplier"]
         llm_type = config["llm_type"]
         model_ = config["model"]
         api_key = config["api_key"]
@@ -69,19 +76,6 @@ class VannaServer:
         milvus_database = config["milvus_database"] if "milvus_database" in config else "test"
         milvus_client = MilvusClient(uri=milvus_uri,db_name=milvus_database)
 
-        embedding_type = config["embedding_type"]
-        embedding_host = config["embedding_host"] if "embedding_host" in config else 'http://wsd.wisdomidata.com:19042'
-        embedding_model = config["embedding_model"] if "embedding_model" in config else "bge-m3" # BAAI/bge-m3
-        if embedding_type == "ollama":
-            embedding_function = CustomEmbeddingFunction({
-                "host": embedding_host,
-                "embed_model": embedding_model
-            })
-        else:
-            embedding_function = model.dense.SentenceTransformerEmbeddingFunction(
-                model_name=embedding_model,
-                device='cpu'  # 'cpu' or 'cuda:0'
-            )
         chat_llm = Ollama
 
         config = {
@@ -89,7 +83,7 @@ class VannaServer:
             'api_key': api_key if api_key != '' else None,  # 本地ollama大模型服务地址
             'milvus_client': milvus_client,  # 本地milvus向量数据库服务地址
             "n_results": 12,
-            "embedding_function": embedding_function,
+            "embedding_function": custom_embedding_instance,
         }
 
         if llm_type == "ollama":
@@ -945,6 +939,7 @@ def make_vanna_class(ChatClass=Ollama):
         def __init__(self, config=None):
             Milvus_VectorStore.__init__(self, config=config)
             ChatClass.__init__(self, config=config)
+            self.embedding_function = custom_embedding_instance
 
         def is_sql_valid(self, sql: str) -> bool:
             # Your implementation here
@@ -1125,7 +1120,7 @@ def make_vanna_class(ChatClass=Ollama):
             if len(description) == 0:
                 raise Exception("description can not be null")
             _id = str(uuid.uuid4()) + "-func"
-            embedding = self.embedding_function.encode_documents([description])[0]
+            embedding = self.embedding_function.encode_queries([description])[0]
             self.milvus_client.insert(
                 collection_name="vannafunc",
                 data={

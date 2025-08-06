@@ -18,9 +18,9 @@ class VannaConfig(BaseSettings):
         default='bge-m3',
     )
 
-    VANNA_EMBEDDING_TYPE: Optional[str] = Field(
-        description="vanna 向量模型类型，默认是localhost,可以是ollama或其他类型",
-        default="localhost",
+    VANNA_EMBEDDING_API_KEY: Optional[str] = Field(
+        description="vanna 向量模型AKY",
+        default="",
     )
 
     VANNA_LLM_TYPE: Optional[str] = Field(

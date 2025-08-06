@@ -1,49 +1,49 @@
 import json
+
+from openai.types import Embedding
+
 from configs import dify_config
 from typing import List, Dict
 
-from core.workflow.entities.node_entities import NodeRunResult
-from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
 from dify_app import DifyApp
 from pymilvus import MilvusClient
 from pymilvus.model.base import BaseEmbeddingFunction
 from flask import jsonify, request
 from openai import OpenAI
-import ollama
 import numpy as np
 from extensions.utils.search_tool import api_desc_match
 import extensions.utils.date_utils as date_utils
-
 
 # 自定义嵌入式模型（适配milvus向量数据库）
 class CustomEmbeddingFunction(BaseEmbeddingFunction):
 
     def __init__(self):
         self.embed_model = dify_config.VANNA_EMBEDDING_MODEL
-        self.embedding_model = ollama.Client(dify_config.VANNA_EMBEDDING_HOST)
-        self.keep_alive = None
-        self.ollama_options = {}
-        self.num_ctx = self.ollama_options.get('num_ctx', 2048)
+        self.embedding_model = OpenAI(
+            base_url=dify_config.VANNA_EMBEDDING_HOST,
+            api_key=dify_config.VANNA_EMBEDDING_API_KEY,
+        )
 
     def __call__(self, texts: List[str]):
         self._encode(texts)
 
-    def _encode(self, texts: list[str]) -> list[list[float]]:
-        return [self.embedding_model.embeddings(
+    def _encode(self, texts: list[str]) -> list[Embedding]:
+        embeddings = self.embedding_model.embeddings.create(
             model=self.embed_model,
-            prompt=text,
-            options=self.ollama_options,
-            keep_alive=self.keep_alive
-        )["embedding"] for text in texts]
+            input=texts,
+        )
+        return [embedding.embedding for embedding in embeddings.data]
 
     def encode_queries(self, queries: List[str]) -> List[np.array]:
-        embeddings = self._encode(queries)
-        return [np.array(embedding) for embedding in embeddings]
+        response = self._encode(queries)
+        return [np.array(embedding) for embedding in response]
+
+custom_embedding_instance = CustomEmbeddingFunction()
 
 
 class FunctionCallingServer:
     def __init__(self):
-        self.embedding_function = CustomEmbeddingFunction()
+        self.embedding_function = custom_embedding_instance
         self.milvus_client = MilvusClient(
             uri=dify_config.VANNA_MILVUS_URI,
             db_name=dify_config.VANNA_MILVUS_DATABASE,
@@ -141,7 +141,7 @@ class FunctionCallingServer:
             for tool in tools
         ]
 
-    def get_run_api(self, api_info: dict, question : str, tenant_id: int) -> dict:
+    def get_run_api(self, api_info: dict, question: str, tenant_id: int) -> dict:
         type = api_info["type"]
         # 获取API 信息
         ext = api_info["ext"]
@@ -173,7 +173,7 @@ class FunctionCallingServer:
                     "content": content,
                     "tenantId": tenant_id,
                     "ext": ext,
-                    "question" : question
+                    "question": question
                 }
             }
 
@@ -189,11 +189,11 @@ class FunctionCallingServer:
                     target_required = word_keys["required"]
                     target_un_required = word_keys["un_required"]
                     ok = api_desc_match(question_text=question,
-                                        name = description,
+                                        name=description,
                                         target_required=target_required,
                                         target_un_required=target_un_required,
                                         word=word,
-                                        synonym=synonym )
+                                        synonym=synonym)
                     if ok:
                         return [func]
         return []
