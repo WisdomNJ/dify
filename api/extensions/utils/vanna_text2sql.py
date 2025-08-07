@@ -530,16 +530,27 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
         else:
             initial_prompt = None
         import time
+        # self.vn.milvus_client.flush(collection_name="vannasql")
+        start_time0 = time.time()
         # import pdb; pdb.set_trace()
         question_sql_list = self.vn.get_similar_question_sql(question, **kwargs)
+        index_info = self.vn.milvus_client.describe_index("vannasql", "vector")
+        print("index_info",index_info)
+        start_time0_1 = time.time()
+        print(f"get_similar_question_sql - 执行时间：{start_time0_1 - start_time0:.4f} 秒")
         # question_sql_list = question_sql_list[0:1]
         ddl_list = self.vn.get_related_ddl(question, **kwargs)
+        start_time0_2 = time.time()
+        print(f"get_related_ddl 执行时间：{start_time0_2 - start_time0_1:.4f} 秒")
         # ddl_list= ddl_list[0:1]
         # self.filter_ddl_with_llm(ddl_list=ddl_list,question=question)
         # import pdb; pdb.set_trace()
         doc_list = self.vn.get_related_documentation(question, **kwargs)
         # doc_list.append(f"所有主表查询，必须加上条件tenant_id = {tenant_id}")
         start_time1 = time.time()
+        start_time0_3 = time.time()
+        print(f"get_related_documentation执行时间：{start_time0_3 - start_time0_2:.4f} 秒")
+        print(f"查询向量数据库执行时间：{start_time1 - start_time0:.4f} 秒")
         prompt = self.get_sql_prompt(
             initial_prompt=initial_prompt,
             question=question,
@@ -900,6 +911,7 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
                 sql=item["sql"],
             )
 
+        self.vn.milvus_client.flush(["vannasql"])
         self.vn.milvus_client.refresh_load(collection_name="vannasql")
 
         return False
@@ -982,17 +994,38 @@ def make_vanna_class(ChatClass=Ollama):
                 search_params=search_params
             )
             res = res[0]
-
             list_ddl = []
+            res = [r for r in res if r["distance"] >= 0.5]
             for doc in res:
                 print(doc["distance"])
                 list_ddl.append(doc["entity"]["ddl"])
             return list_ddl
 
-        def get_related_func(self, question: str, **kwargs) -> list:
+        def get_related_documentation(self, question: str, **kwargs) -> list:
             search_params = {
                 "metric_type": "COSINE",
                 "params": {"nprobe": 8},
+            }
+            embeddings = self.embedding_function.encode_queries([question])
+            res = self.milvus_client.search(
+                collection_name="vannadoc",
+                anns_field="vector",
+                data=embeddings,
+                limit=self.n_results,
+                output_fields=["doc"],
+                search_params=search_params
+            )
+            res = res[0]
+
+            list_doc = []
+            for doc in res:
+                list_doc.append(doc["entity"]["doc"])
+            return list_doc
+
+        def get_related_func(self, question: str, **kwargs) -> list:
+            search_params = {
+                "metric_type": "COSINE",
+                "params": {"nprobe": 64},
             }
 
             embeddings = self.embedding_function.encode_queries([question])
@@ -1035,39 +1068,96 @@ def make_vanna_class(ChatClass=Ollama):
                 })
             return list_func
 
-        def get_similar_question_sql2(self, question: str, **kwargs) -> list:
+        def get_similar_question_sql(self, question: str, **kwargs) -> list:
             search_params = {
-                "metric_type": "L2",
-                "params": {"nprobe": 128},
+                "metric_type": "COSINE",
+                # "params": {"nprobe": 8},
             }
+            import time
+            start_time0 = time.time()
             embeddings = self.embedding_function.encode_queries([question])
+            start_time1 = time.time()
+            print(f"embedding_function - 执行时间：{start_time1 - start_time0:.4f} 秒")
             res = self.milvus_client.search(
                 collection_name="vannasql",
-                anns_field="text_vector",
+                anns_field="vector",
                 data=embeddings,
                 limit=self.n_results,
                 output_fields=["text", "sql"],
                 search_params=search_params
             )
             res = res[0]
-
             list_sql = []
+            res = [r for r in res if r["distance"] >= 0.5]
             for doc in res:
                 dict = {}
+                print(doc["distance"])
                 dict["question"] = doc["entity"]["text"]
                 dict["sql"] = doc["entity"]["sql"]
                 list_sql.append(dict)
             return list_sql
 
+        def normalizes(self, vectors):
+            return vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+
         def _create_collections(self):
-            # import pdb; pdb.set_trace()
             self._create_sql_collection("vannasql")
             self._create_ddl_collection("vannaddl")
             self._create_doc_collection("vannadoc")
             self._create_func_collection("vannafunc")
+            self._create_table_config_collection("table_conf")
+
+        def _create_doc_collection(self, name: str):
+            if not self.milvus_client.has_collection(collection_name=name):
+                vannadoc_schema = MilvusClient.create_schema(
+                    auto_id=False,
+                    enable_dynamic_field=False,
+                )
+                vannadoc_schema.add_field(field_name="id", datatype=DataType.VARCHAR, max_length=65535, is_primary=True)
+                vannadoc_schema.add_field(field_name="doc", datatype=DataType.VARCHAR, max_length=65535)
+                vannadoc_schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self._embedding_dim)
+
+                vannadoc_index_params = self.milvus_client.prepare_index_params()
+                vannadoc_index_params.add_index(
+                    field_name="vector",
+                    index_name="vector",
+                    index_type="AUTOINDEX",
+                    metric_type="COSINE",
+                )
+                self.milvus_client.create_collection(
+                    collection_name=name,
+                    schema=vannadoc_schema,
+                    index_params=vannadoc_index_params,
+                    consistency_level="Strong"
+                )
+
+        def _create_sql_collection(self, name: str):
+            if not self.milvus_client.has_collection(collection_name=name):
+                vannasql_schema = MilvusClient.create_schema(
+                    auto_id=False,
+                    enable_dynamic_field=False,
+                )
+                vannasql_schema.add_field(field_name="id", datatype=DataType.VARCHAR, max_length=65535, is_primary=True)
+                vannasql_schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=65535)
+                vannasql_schema.add_field(field_name="sql", datatype=DataType.VARCHAR, max_length=65535)
+                vannasql_schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self._embedding_dim)
+
+                vannasql_index_params = self.milvus_client.prepare_index_params()
+                vannasql_index_params.add_index(
+                    field_name="vector",
+                    index_name="vector",
+                    index_type="FLAT",
+                    metric_type="COSINE",
+                    # metric_type="L2",
+                )
+                self.milvus_client.create_collection(
+                    collection_name=name,
+                    schema=vannasql_schema,
+                    index_params=vannasql_index_params,
+                    consistency_level="Strong"
+                )
 
         def _create_ddl_collection(self, name: str):
-            # import pdb; pdb.set_trace()
             if not self.milvus_client.has_collection(collection_name=name):
                 vannaddl_schema = MilvusClient.create_schema(
                     auto_id=False,
@@ -1089,6 +1179,34 @@ def make_vanna_class(ChatClass=Ollama):
                     collection_name=name,
                     schema=vannaddl_schema,
                     index_params=vannaddl_index_params,
+                    consistency_level="Strong"
+                )
+
+
+        def _create_table_config_collection(self, name: str):
+            # import pdb; pdb.set_trace()
+            if not self.milvus_client.has_collection(collection_name=name):
+                vannafunc_schema = MilvusClient.create_schema(
+                    auto_id=False,
+                    enable_dynamic_field=False,
+                )
+                vannafunc_schema.add_field(field_name="id", datatype=DataType.VARCHAR, max_length=65535, is_primary=True)
+                vannafunc_schema.add_field(field_name="description", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="table", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self._embedding_dim)
+
+                vannafunc_index_params = self.milvus_client.prepare_index_params()
+                vannafunc_index_params.add_index(
+                    field_name="vector",
+                    index_name="vector",
+                    index_type="AUTOINDEX",
+                    metric_type="COSINE",
+                    # metric_type="L2",
+                )
+                self.milvus_client.create_collection(
+                    collection_name=name,
+                    schema=vannafunc_schema,
+                    index_params=vannafunc_index_params,
                     consistency_level="Strong"
                 )
 
@@ -1151,6 +1269,24 @@ def make_vanna_class(ChatClass=Ollama):
                 }
             )
             return _id
+
+
+        def add_table_conf(self, table_name:str, description: str) -> str:
+            if len(table_name) == 0:
+                raise Exception("table can not be null")
+            _id = str(uuid.uuid4()) + "-table-conf"
+            embedding = self.embedding_function.encode_queries([description])[0]
+            self.milvus_client.insert(
+                collection_name="table_conf",
+                data={
+                    "id": _id,
+                    "description": description,
+                    "table" : table_name,
+                    "vector": embedding
+                }
+            )
+            return _id
+
     return MyVanna
 
 
