@@ -530,22 +530,27 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
         else:
             initial_prompt = None
         import time
-        # self.vn.milvus_client.flush(collection_name="vannasql")
+        start_time0_0 = time.time()
+        embeddings = self.vn.embedding_function.encode_queries([question])
         start_time0 = time.time()
+        # embeddings = self.vn.normalizes(embeddings)
+        print(f"embedding_function - 执行时间：{start_time0 - start_time0_0:.4f} 秒")
+        # self.vn.milvus_client.flush(collection_name="vannasql")
+
         # import pdb; pdb.set_trace()
-        question_sql_list = self.vn.get_similar_question_sql(question, **kwargs)
+        question_sql_list = self.vn.get_similar_question_sql(embeddings, **kwargs)
         index_info = self.vn.milvus_client.describe_index("vannasql", "vector")
         print("index_info",index_info)
         start_time0_1 = time.time()
         print(f"get_similar_question_sql - 执行时间：{start_time0_1 - start_time0:.4f} 秒")
         # question_sql_list = question_sql_list[0:1]
-        ddl_list = self.vn.get_related_ddl(question, **kwargs)
+        ddl_list = self.vn.get_related_ddl(embeddings, **kwargs)
         start_time0_2 = time.time()
         print(f"get_related_ddl 执行时间：{start_time0_2 - start_time0_1:.4f} 秒")
         # ddl_list= ddl_list[0:1]
         # self.filter_ddl_with_llm(ddl_list=ddl_list,question=question)
         # import pdb; pdb.set_trace()
-        doc_list = self.vn.get_related_documentation(question, **kwargs)
+        doc_list = self.vn.get_related_documentation(embeddings, **kwargs)
         # doc_list.append(f"所有主表查询，必须加上条件tenant_id = {tenant_id}")
         start_time1 = time.time()
         start_time0_3 = time.time()
@@ -977,13 +982,13 @@ def make_vanna_class(ChatClass=Ollama):
 
             return self.submit_prompt(prompt=my_prompt)
 
-        def get_related_ddl(self, question: str, **kwargs) -> list:
+        def get_related_ddl(self, embeddings: List[np.array], **kwargs) -> list:
             # import pdb; pdb.set_trace()
             search_params = {
                 "metric_type": "COSINE",
-                "params": {"nprobe": 8},
+                # "params": {"nprobe": 8},
             }
-            embeddings = self.embedding_function.encode_queries([question])
+            # embeddings = self.embedding_function.encode_queries([question])
 
             res = self.milvus_client.search(
                 collection_name="vannaddl",
@@ -1001,12 +1006,12 @@ def make_vanna_class(ChatClass=Ollama):
                 list_ddl.append(doc["entity"]["ddl"])
             return list_ddl
 
-        def get_related_documentation(self, question: str, **kwargs) -> list:
+        def get_related_documentation(self, embeddings: List[np.array], **kwargs) -> list:
             search_params = {
                 "metric_type": "COSINE",
-                "params": {"nprobe": 8},
+                # "params": {"nprobe": 8},
             }
-            embeddings = self.embedding_function.encode_queries([question])
+            # embeddings = self.embedding_function.encode_queries([question])
             res = self.milvus_client.search(
                 collection_name="vannadoc",
                 anns_field="vector",
@@ -1068,16 +1073,16 @@ def make_vanna_class(ChatClass=Ollama):
                 })
             return list_func
 
-        def get_similar_question_sql(self, question: str, **kwargs) -> list:
+        def get_similar_question_sql(self, embeddings: List[np.array], **kwargs) -> list:
             search_params = {
                 "metric_type": "COSINE",
                 # "params": {"nprobe": 8},
             }
             import time
             start_time0 = time.time()
-            embeddings = self.embedding_function.encode_queries([question])
+            # embeddings = self.embedding_function.encode_queries([question])
             start_time1 = time.time()
-            print(f"embedding_function - 执行时间：{start_time1 - start_time0:.4f} 秒")
+            # print(f"embedding_function - 执行时间：{start_time1 - start_time0:.4f} 秒")
             res = self.milvus_client.search(
                 collection_name="vannasql",
                 anns_field="vector",
@@ -1121,7 +1126,7 @@ def make_vanna_class(ChatClass=Ollama):
                 vannadoc_index_params.add_index(
                     field_name="vector",
                     index_name="vector",
-                    index_type="AUTOINDEX",
+                    index_type="FLAT",
                     metric_type="COSINE",
                 )
                 self.milvus_client.create_collection(
@@ -1171,7 +1176,7 @@ def make_vanna_class(ChatClass=Ollama):
                 vannaddl_index_params.add_index(
                     field_name="vector",
                     index_name="vector",
-                    index_type="AUTOINDEX",
+                    index_type="FLAT",
                     metric_type="COSINE",
                     # metric_type="L2",
                 )
@@ -1199,7 +1204,7 @@ def make_vanna_class(ChatClass=Ollama):
                 vannafunc_index_params.add_index(
                     field_name="vector",
                     index_name="vector",
-                    index_type="AUTOINDEX",
+                    index_type="FLAT",
                     metric_type="COSINE",
                     # metric_type="L2",
                 )
@@ -1234,7 +1239,7 @@ def make_vanna_class(ChatClass=Ollama):
                 vannafunc_index_params.add_index(
                     field_name="vector",
                     index_name="vector",
-                    index_type="AUTOINDEX",
+                    index_type="FLAT",
                     metric_type="COSINE",
                     # metric_type="L2",
                 )
