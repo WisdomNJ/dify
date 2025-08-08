@@ -1030,7 +1030,7 @@ def make_vanna_class(ChatClass=Ollama):
         def get_related_func(self, question: str, **kwargs) -> list:
             search_params = {
                 "metric_type": "COSINE",
-                "params": {"nprobe": 64},
+                # "params": {"nprobe": 64},
             }
 
             embeddings = self.embedding_function.encode_queries([question])
