@@ -916,7 +916,6 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
                 sql=item["sql"],
             )
 
-        self.vn.milvus_client.flush(["vannasql"])
         self.vn.milvus_client.refresh_load(collection_name="vannasql")
 
         return False
