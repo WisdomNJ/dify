@@ -141,7 +141,7 @@ class FunctionCallingServer:
             for tool in tools
         ]
 
-    def get_run_api(self, api_info: dict, question: str, tenant_id: int) -> dict:
+    def get_run_api(self, api_info: dict, question: str, tenant_id: str) -> dict:
         type = api_info["type"]
         # 获取API 信息
         ext = api_info["ext"]
@@ -198,14 +198,7 @@ class FunctionCallingServer:
                         return [func]
         return []
 
-    def get_api_info(self, question, tenant_id, model, api_key, base_url):
-
-        # 获取所有的问句
-        funcs = self.get_related_func(question=question)
-        # 分词过滤
-        funcs = self.filter_api_info(question=question, funcs=funcs)
-        if len(funcs) == 0:
-            return None, {}
+    def get_api_info_by_model(self, question:str, tenant_id:str, model:str, api_key:str, base_url:str, funcs:list) -> ( str, dict ):
 
         wanted_keys = {"description", "params", "id", "ext_prompt"}
         api_prompt_list = [{k: v for k, v in f.items() if k in wanted_keys} for f in funcs]
@@ -227,7 +220,7 @@ class FunctionCallingServer:
         )
 
         if response.choices[0].finish_reason != "tool_calls":
-            return None, {}
+            return None, None, {}
         tool_calls = response.choices[0].message.tool_calls
 
         api_info = None
@@ -244,13 +237,51 @@ class FunctionCallingServer:
 
         # 验证环节
         if "id" not in api_info or not api_info["id"]:
-            return None, {}
+            return None, None,{}
 
         # 根据API信息，执行接口
         run_api_info = self.get_run_api(api_info=api_info, question=question, tenant_id=tenant_id)
 
-        return run_api_info["url"], run_api_info["body"]
+        return run_api_info["url"], run_api_info["description"], run_api_info["body"]
 
+    def get_api_info(self, question:str, tenant_id:str, model:str, api_key:str, base_url:str) -> ( str, str,dict ):
+
+        # 获取所有的问句
+        funcs = self.get_related_func(question=question)
+        # 分词过滤
+        funcs = self.filter_api_info(question=question, funcs=funcs)
+        if len(funcs) == 0:
+            return None,None, {}
+
+        return self.get_api_info_by_model(
+            question=question,
+            tenant_id=tenant_id,
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            funcs=funcs
+        )
+
+    def get_api_info_test(self, question:str, tenant_id:str, model:str, api_key:str, base_url:str,) -> ( str,str, dict ):
+        # 获取所有的问句
+        funcs = self.get_related_func(question=question)
+        # 分词过滤
+        filter_funcs = self.filter_api_info(question=question, funcs=funcs)
+
+        if len(filter_funcs) == 0:
+            filter_funcs = funcs
+
+        if len(funcs) == 0:
+            return None, {}
+
+        return self.get_api_info_by_model(
+            question=question,
+            tenant_id=tenant_id,
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            funcs=filter_funcs
+        )
 
 function_calling_instance = FunctionCallingServer()
 
@@ -260,7 +291,7 @@ def init_app(app: DifyApp):
     def get_api_info():
         question = request.args.get('question')
         tenant_id = request.args.get('tenant_id')
-        url, params = function_calling_instance.get_api_info(
+        url, desc, params = function_calling_instance.get_api_info(
             question=question,
             model=dify_config.VANNA_MODEL,
             api_key=dify_config.VANNA_API_KEY,
@@ -271,6 +302,29 @@ def init_app(app: DifyApp):
         return jsonify(
             {
                 "url": url,
+                "desc" : desc,
                 "params": params,
             }
         ), 200
+
+    @app.route('/api/text2api_test', methods=['GET'])
+    def get_api_info_test():
+        question = request.args.get('question')
+        tenant_id = request.args.get('tenant_id')
+        url, desc, params = function_calling_instance.get_api_info_test(
+            question=question,
+            model=dify_config.VANNA_MODEL,
+            api_key=dify_config.VANNA_API_KEY,
+            base_url=dify_config.VANNA_OLLAMA_HOST,
+            tenant_id=tenant_id
+        )
+
+        return jsonify(
+            {
+                "url": url,
+                "desc" : desc,
+                "params": params,
+            }
+        ), 200
+
+
