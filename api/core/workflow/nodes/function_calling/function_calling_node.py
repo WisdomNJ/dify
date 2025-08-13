@@ -83,7 +83,7 @@ class FunctionCallingNode(BaseNode):
             case 'langgenius/ollama/ollama':
                 base_url = model_instance.credentials.get('base_url')
 
-        url, params = function_calling_instance.get_api_info(
+        url, desc, params = function_calling_instance.get_api_info_test(
             question=query,
             tenant_id=target_tenant_id,
             model=model,
