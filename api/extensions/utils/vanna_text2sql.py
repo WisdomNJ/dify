@@ -577,63 +577,6 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
         return self.vn.extract_sql(llm_response)
         # return self.vn.generate_sql(question=question)
 
-    def get_prompt_1(self,json_str : str):
-        prompt = f"""
-        你是接口匹配助手，任务如下：
-
-1. 根据用户问句，精准匹配接口文档中唯一一个最相关接口，匹配依据是问句中{{}}内关键字必须完全对应接口params的字段名，且字段类型一致。
-2. 提取或推理接口所需所有参数值，参数类型必须与接口文档完全一致。若参数缺失或类型不符，返回null。
-3. 若问句中关键词未完全匹配任何接口params，返回null。
-4. 若匹配多个接口，返回最符合的一个。
-5. 今天是2025-07-31，支持日期相关参数自动填充。
-6. 输出格式严格为：
-{{
-    "id": "接口主键",
-    "description": "接口说明",
-    "params": {{ param1: 2025, param2: "字符串" }}
-}}
-7. 若无法确定匹配结果，直接返回null。输出结果 要么是json，要么是null
-8. 参数提取时，支持基本类型转换（数字、字符串），不支持复杂类型推断。
-9. 在匹配时，使用严格字符串匹配，不支持模糊匹配。
-10. 示例匹配：
-    问句：“查询{{用户}}的{{订单}}状态”
-    接口params包含"userId"和"orderId"，且问句中关键词"user"、"order"对得上，返回对应接口调用。
-11. 反例：
-    问句：“查询2024年1月的订单”
-    接口对应{{年}}，返回null。
-
-接口文档如下：
-{json_str}
-        """
-        return prompt
-
-    def get_prompt_2(self,json_str : str):
-        prompt = f"""
-            你是一个接口匹配助手，任务是：
-
-            1. 根据接口描述，选出与用户问句最相关的一个接口
-            2. 提取或推理出接口所需的参数值
-            3. 给出最终的函数调用格式
-            4. 今天是2025-07-31
-            5. 问句与内容要做到精准匹配，{{}}内的关键字要匹配上，不能做到精准匹配的返回null
-            6. {{}}内的关键字要和params对应上，
-            7. 拿不准的情况下，直接返回null
-            8. 参数必须完全匹配，匹配不到返回错误信息
-            9. 注意参数的类型，要与params内保持一致
-            10. 输出结果 要么是json，要么是null
-            接口文档如下：
-
-            {json_str}
-            请输出json格式如下：
-            {{
-                "id": "主键",
-                "description": "接口说明",
-                "params": {{ param1: 2025 , param2: "字符串"}}
-            }}
-            - params是参数，参数为空显示空字符串
-        """
-        return prompt
-
     def get_api_info(self, question, **kwargs) -> dict:
         # 获取所有的问句
         funcs = self.vn.get_related_func(question=question)
@@ -1026,6 +969,7 @@ def make_vanna_class(ChatClass=Ollama):
 
             list_doc = []
             for doc in res:
+                print(doc["distance"])
                 list_doc.append(doc["entity"]["doc"])
             return list_doc
 
