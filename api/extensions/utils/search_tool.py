@@ -520,8 +520,8 @@ def api_desc_match(question_text:str,
                    target_un_required: str,
                    word : str,
                    synonym : str,):
-    # jieba.analyse.set_stop_words("extensions/utils/stopwords.txt")
-    jieba.analyse.set_stop_words("d://stopwords.txt")
+    jieba.analyse.set_stop_words("extensions/utils/stopwords.txt")
+    # jieba.analyse.set_stop_words("d://stopwords.txt")
     # 获取同义词
     synonym_dict = get_synonym_dict(synonym)
     # 根据问题，追加同义词
