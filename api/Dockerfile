@@ -20,7 +20,7 @@ RUN apt-get update \
 # 构建时重新生成uv.lock文件
 # Install Python dependencies
 COPY pyproject.toml ./
-RUN uv sync
+RUN uv sync --dev --default-index https://pypi.org/simple/
 
 # production stage
 FROM base AS production
