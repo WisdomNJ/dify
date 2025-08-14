@@ -270,7 +270,6 @@ class FunctionCallingServer:
         funcs = self.get_related_func(question=question,tags=tags)
         # 分词过滤
         biz_funcs = self.filter_api_info(question=question, funcs=funcs)
-        import pdb; pdb.set_trace()
         if len(biz_funcs) == 0 and fuzzy_api == "1":
             biz_funcs = funcs
 
