@@ -899,6 +899,7 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
                 type=item["type"],
                 content=item["content"],
                 ext_prompt=item["ext_prompt"],
+                tags=item["tags"],
                 word_keys=item["word_keys"],
                 synonym=item["synonym"],
                 word=item["word"],
@@ -986,7 +987,7 @@ def make_vanna_class(ChatClass=Ollama):
                 anns_field="vector",
                 data=embeddings,
                 limit=10,
-                output_fields=["url","description","params","ext","id","type","content","ext_prompt","word_keys", "synonym", "word"],
+                output_fields=["url","description","params","ext","id","type","content","ext_prompt","word_keys", "synonym", "word","tags"],
                 search_params=search_params
             )
             res = res[0]
@@ -1000,6 +1001,7 @@ def make_vanna_class(ChatClass=Ollama):
                 type = doc["entity"]["type"]
                 content = doc["entity"]["content"]
                 ext_prompt = doc["entity"]["ext_prompt"]
+                tags = doc["entity"]["tags"]
                 word_keys = doc["entity"]["word_keys"]
                 synonym = doc["entity"]["synonym"]
                 word = doc["entity"]["word"]
@@ -1015,6 +1017,7 @@ def make_vanna_class(ChatClass=Ollama):
                     "synonym" : synonym,
                     "word" : word,
                     "ext" : ext,
+                    "tags" : tags,
                     "description" : description
                 })
             return list_func
@@ -1176,6 +1179,7 @@ def make_vanna_class(ChatClass=Ollama):
                 vannafunc_schema.add_field(field_name="ext", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="content", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="ext_prompt", datatype=DataType.VARCHAR, max_length=65535)
+                vannafunc_schema.add_field(field_name="tags", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="word_keys", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="synonym", datatype=DataType.VARCHAR, max_length=65535)
                 vannafunc_schema.add_field(field_name="word", datatype=DataType.VARCHAR, max_length=65535)
@@ -1197,7 +1201,8 @@ def make_vanna_class(ChatClass=Ollama):
                 )
 
         def add_func(self, description: str, url: str, params: str, ext : str, type : str,
-                     content : str, ext_prompt : str, word_keys: str, synonym: str, word: str) -> str:
+                     content : str, ext_prompt : str, word_keys: str, synonym: str,
+                     word: str, tags : str) -> str:
             if len(description) == 0:
                 raise Exception("description can not be null")
             _id = str(uuid.uuid4()) + "-func"
@@ -1216,6 +1221,7 @@ def make_vanna_class(ChatClass=Ollama):
                     "type" : type,
                     "content" : content,
                     "ext_prompt" : ext_prompt,
+                    "tags" : tags,
                     "vector": embedding
                 }
             )

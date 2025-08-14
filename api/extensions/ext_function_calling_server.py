@@ -51,7 +51,16 @@ class FunctionCallingServer:
             password=dify_config.VANNA_MILVUS_PASSWORD,
         )
 
-    def get_related_func(self, question: str) -> list:
+    # 过滤标签
+    def get_tags_filter(self, tags: str):
+        if tags:
+            tag_arr = tags.split(",")
+            tag_arr = [f" tags like '%{tag}%'"  for tag in tag_arr]
+            return f"({"or".join(tag_arr)})"
+        return ""
+
+
+    def get_related_func(self, question: str, tags : str) -> list:
 
         search_params = {
             "metric_type": "COSINE",
@@ -59,14 +68,17 @@ class FunctionCallingServer:
         }
 
         embeddings = self.embedding_function.encode_queries([question])
+        # 过滤tags
+        filter_str = self.get_tags_filter(tags)
 
         res = self.milvus_client.search(
             collection_name="vannafunc",
             anns_field="vector",
             data=embeddings,
+            filter=filter_str,
             limit=10,
             output_fields=["url", "description", "params", "ext", "id", "type", "content", "ext_prompt", "word_keys",
-                           "synonym", "word"],
+                           "synonym", "word", "tags"],
             search_params=search_params
         )
         res = res[0]
@@ -84,6 +96,7 @@ class FunctionCallingServer:
             word = doc["entity"]["word"]
             ext_prompt = doc["entity"]["ext_prompt"]
             id = doc["entity"]["id"]
+            tags = doc["entity"]["tags"]
             list_func.append({
                 "id": id,
                 "params": params,
@@ -95,7 +108,8 @@ class FunctionCallingServer:
                 "word": word,
                 "ext_prompt": ext_prompt,
                 "ext": ext,
-                "description": description
+                "description": description,
+                "tags": tags
             })
         return list_func
 
@@ -253,15 +267,15 @@ class FunctionCallingServer:
                      fuzzy_api:str,
                      tags:str) -> ( str, str,dict ):
         # 获取所有的问句
-        funcs = self.get_related_func(question=question)
+        funcs = self.get_related_func(question=question,tags=tags)
         # 分词过滤
         biz_funcs = self.filter_api_info(question=question, funcs=funcs)
+        import pdb; pdb.set_trace()
+        if len(biz_funcs) == 0 and fuzzy_api == "1":
+            biz_funcs = funcs
 
         if len(biz_funcs) == 0:
-            if fuzzy_api == "1":
-                biz_funcs = funcs
-            else:
-                return None,None, {}
+            return None,None, {}
 
         return self.get_api_info_by_model(
             question=question,
@@ -269,29 +283,29 @@ class FunctionCallingServer:
             model=model,
             api_key=api_key,
             base_url=base_url,
-            funcs=funcs
+            funcs=biz_funcs
         )
-
-    def get_api_info_test(self, question:str, tenant_id:str, model:str, api_key:str, base_url:str,) -> ( str,str, dict ):
-        # 获取所有的问句
-        funcs = self.get_related_func(question=question)
-        # 分词过滤
-        filter_funcs = self.filter_api_info(question=question, funcs=funcs)
-
-        if len(filter_funcs) == 0:
-            filter_funcs = funcs
-
-        if len(funcs) == 0:
-            return None, {}
-
-        return self.get_api_info_by_model(
-            question=question,
-            tenant_id=tenant_id,
-            model=model,
-            api_key=api_key,
-            base_url=base_url,
-            funcs=filter_funcs
-        )
+    #
+    # def get_api_info_test(self, question:str, tenant_id:str, model:str, api_key:str, base_url:str,) -> ( str,str, dict ):
+    #     # 获取所有的问句
+    #     funcs = self.get_related_func(question=question)
+    #     # 分词过滤
+    #     filter_funcs = self.filter_api_info(question=question, funcs=funcs)
+    #
+    #     if len(filter_funcs) == 0:
+    #         filter_funcs = funcs
+    #
+    #     if len(funcs) == 0:
+    #         return None, {}
+    #
+    #     return self.get_api_info_by_model(
+    #         question=question,
+    #         tenant_id=tenant_id,
+    #         model=model,
+    #         api_key=api_key,
+    #         base_url=base_url,
+    #         funcs=filter_funcs
+    #     )
 
 function_calling_instance = FunctionCallingServer()
 
@@ -299,6 +313,7 @@ function_calling_instance = FunctionCallingServer()
 def init_app(app: DifyApp):
     @app.route('/api/text2api', methods=['GET'])
     def get_api_info():
+
         question = request.args.get('question')
         tenant_id = request.args.get('tenant_id')
         fuzzy_api = request.args.get('fuzzy_api')
