@@ -244,14 +244,24 @@ class FunctionCallingServer:
 
         return run_api_info["url"], run_api_info["description"], run_api_info["body"]
 
-    def get_api_info(self, question:str, tenant_id:str, model:str, api_key:str, base_url:str) -> ( str, str,dict ):
-
+    def get_api_info(self,
+                     question:str,
+                     tenant_id:str,
+                     model:str,
+                     api_key:str,
+                     base_url:str,
+                     fuzzy_api:str,
+                     tags:str) -> ( str, str,dict ):
         # 获取所有的问句
         funcs = self.get_related_func(question=question)
         # 分词过滤
-        funcs = self.filter_api_info(question=question, funcs=funcs)
-        if len(funcs) == 0:
-            return None,None, {}
+        biz_funcs = self.filter_api_info(question=question, funcs=funcs)
+
+        if len(biz_funcs) == 0:
+            if fuzzy_api == "1":
+                biz_funcs = funcs
+            else:
+                return None,None, {}
 
         return self.get_api_info_by_model(
             question=question,
@@ -287,16 +297,20 @@ function_calling_instance = FunctionCallingServer()
 
 
 def init_app(app: DifyApp):
-    @app.route('/api/fast_generate_sql2', methods=['GET'])
+    @app.route('/api/text2api', methods=['GET'])
     def get_api_info():
         question = request.args.get('question')
         tenant_id = request.args.get('tenant_id')
+        fuzzy_api = request.args.get('fuzzy_api')
+        tags = request.args.get('tags')
         url, desc, params = function_calling_instance.get_api_info(
             question=question,
             model=dify_config.VANNA_MODEL,
             api_key=dify_config.VANNA_API_KEY,
             base_url=dify_config.VANNA_OLLAMA_HOST,
-            tenant_id=tenant_id
+            tenant_id=tenant_id,
+            fuzzy_api=fuzzy_api,
+            tags=tags
         )
 
         return jsonify(
@@ -307,24 +321,27 @@ def init_app(app: DifyApp):
             }
         ), 200
 
-    @app.route('/api/text2api_test', methods=['GET'])
-    def get_api_info_test():
-        question = request.args.get('question')
-        tenant_id = request.args.get('tenant_id')
-        url, desc, params = function_calling_instance.get_api_info_test(
-            question=question,
-            model=dify_config.VANNA_MODEL,
-            api_key=dify_config.VANNA_API_KEY,
-            base_url=dify_config.VANNA_OLLAMA_HOST,
-            tenant_id=tenant_id
-        )
-
-        return jsonify(
-            {
-                "url": url,
-                "desc" : desc,
-                "params": params,
-            }
-        ), 200
+    #
+    # @app.route('/api/text2api_test', methods=['GET'])
+    # def get_api_info_test():
+    #     question = request.args.get('question')
+    #     tenant_id = request.args.get('tenant_id')
+    #     fuzzy_api = request.args.get('fuzzy_api')
+    #     url, desc, params = function_calling_instance.get_api_info_test(
+    #         question=question,
+    #         model=dify_config.VANNA_MODEL,
+    #         api_key=dify_config.VANNA_API_KEY,
+    #         base_url=dify_config.VANNA_OLLAMA_HOST,
+    #         tenant_id=tenant_id,
+    #         fuzzy_api=fuzzy_api
+    #     )
+    #
+    #     return jsonify(
+    #         {
+    #             "url": url,
+    #             "desc" : desc,
+    #             "params": params,
+    #         }
+    #     ), 200
 
 
