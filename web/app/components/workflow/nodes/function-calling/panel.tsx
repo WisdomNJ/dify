@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import useConfig from './use-config'
 import type { FunctionCallNodeType } from './types'
 import Field from '@/app/components/workflow/nodes/_base/components/field'
-import type {NodePanelProps, ValueSelector} from '@/app/components/workflow/types'
+import type { NodePanelProps } from '@/app/components/workflow/types'
 import { InputVarType } from '@/app/components/workflow/types'
 import ModelParameterModal from '@/app/components/header/account-setting/model-provider-page/model-parameter-modal'
 import VarReferencePicker from '@/app/components/workflow/nodes/_base/components/variable/var-reference-picker'
@@ -13,6 +13,7 @@ import type { Props as FormProps } from '@/app/components/workflow/nodes/_base/c
 import { findVariableWhenOnLLMVision } from '@/app/components/workflow/nodes/utils'
 import Split from '@/app/components/workflow/nodes/_base/components/split'
 import OutputVars, { VarItem } from '@/app/components/workflow/nodes/_base/components/output-vars'
+import ValueInput from '@/app/components/workflow/nodes/function-calling/components/ValueInput'
 
 const i18nPrefix = 'workflow.nodes.parameterExtractor'
 
@@ -29,6 +30,8 @@ const Panel: FC<NodePanelProps<FunctionCallNodeType>> = (
     handleCompletionParamsChange,
     handleInputVarChange,
     handleTenantIdChange,
+    handleFuzzyApiChange,
+    handleTagsChange,
     handleModelChanged,
     isShowSingleRun,
     hideSingleRun,
@@ -132,6 +135,30 @@ const Panel: FC<NodePanelProps<FunctionCallNodeType>> = (
             filterVar={filterVar}
           />
         </Field>
+
+        <Field
+          title={'模糊匹配'}
+        >
+          <ValueInput
+            nodeId={id}
+            readonly={readOnly}
+            value={inputs.fuzzy_api}
+            placeholder={'模糊匹配 1 : 0，输入变量/'}
+            onChange={handleFuzzyApiChange}
+          />
+        </Field>
+        <Field
+          title={'tags'}
+        >
+          <ValueInput
+            nodeId={id}
+            readonly={readOnly}
+            value={inputs.tags}
+            placeholder={'tags，输入变量/'}
+            onChange={handleTagsChange}
+          />
+        </Field>
+
       </div>
       <Split />
       <div>

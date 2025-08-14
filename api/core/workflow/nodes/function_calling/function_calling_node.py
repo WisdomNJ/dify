@@ -1,5 +1,6 @@
-from typing import Optional, cast, Any
+import re
 
+from typing import Optional, cast, Any
 from collections.abc import Mapping
 from core.app.entities.app_invoke_entities import ModelConfigWithCredentialsEntity
 from core.model_manager import ModelInstance
@@ -61,10 +62,22 @@ class FunctionCallingNode(BaseNode):
 
     def _run(self):
         node_data = cast(FunctionCallingData, self._node_data)
+        print("node_data", node_data)
         variable = self.graph_runtime_state.variable_pool.get(node_data.query)
         query = variable.text if variable else ""
         variable_tenant_id = self.graph_runtime_state.variable_pool.get(node_data.target_tenant_id)
         target_tenant_id = variable_tenant_id.text if variable_tenant_id else ""
+
+        pattern = r'^{{#.*#}}$'
+        if re.match(pattern, node_data.fuzzy_api):
+            fuzzy_api = self.graph_runtime_state.variable_pool.get(node_data.fuzzy_api)
+        else:
+            fuzzy_api = node_data.fuzzy_api
+
+        if re.match(pattern, node_data.tags):
+            tags = self.graph_runtime_state.variable_pool.get(node_data.tags)
+        else:
+            tags = node_data.tags
 
         model_instance, model_config = LLMNode._fetch_model_config(
             node_data_model=node_data.model,
@@ -83,12 +96,14 @@ class FunctionCallingNode(BaseNode):
             case 'langgenius/ollama/ollama':
                 base_url = model_instance.credentials.get('base_url')
 
-        url, desc, params = function_calling_instance.get_api_info_test(
+        url, desc, params = function_calling_instance.get_api_info(
             question=query,
             tenant_id=target_tenant_id,
             model=model,
             api_key=api_key,
-            base_url=base_url
+            base_url=base_url,
+            fuzzy_api=fuzzy_api,
+            tags=tags
         )
 
         return NodeRunResult(

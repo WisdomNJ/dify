@@ -12,6 +12,8 @@ export type FunctionCallNodeType = CommonNodeType & {
     model: ModelConfig
     query: ValueSelector
     target_tenant_id: ValueSelector
+    fuzzy_api: string,
+    tags: string,
     prompt_template: PromptItem[] | PromptItem
     instruction: string
     reasoning_mode: ReasoningModeType
