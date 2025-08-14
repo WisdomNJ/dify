@@ -22,6 +22,8 @@ class FunctionCallingData(BaseNodeData):
     model: ModelConfig
     query: list[str]
     target_tenant_id: list[str]
+    fuzzy_api: str
+    tags: str
     instruction: Optional[str] = None
     vision: VisionConfig = Field(default_factory=VisionConfig)
 

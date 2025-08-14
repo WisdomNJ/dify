@@ -102,6 +102,20 @@ const useConfig = (id: string, payload: FunctionCallNodeType) => {
         setInputs(newInputs)
     }, [inputs, setInputs])
 
+    const handleFuzzyApiChange = useCallback((newInputVar: string) => {
+        const newInputs = produce(inputs, (draft) => {
+            draft.fuzzy_api = newInputVar
+        })
+        setInputs(newInputs)
+    }, [inputs, setInputs])
+
+    const handleTagsChange = useCallback((newInputVar: string) => {
+        const newInputs = produce(inputs, (draft) => {
+            draft.tags = newInputVar
+        })
+        setInputs(newInputs)
+    }, [inputs, setInputs])
+
     const filterVar = useCallback((varPayload: Var) => {
         return [VarType.string].includes(varPayload.type)
     }, [])
@@ -149,6 +163,8 @@ const useConfig = (id: string, payload: FunctionCallNodeType) => {
         handleModelChanged,
         handleInputVarChange,
         handleTenantIdChange,
+        handleFuzzyApiChange,
+        handleTagsChange,
         handleCompletionParamsChange,
         availableVisionVars,
         visionFiles,
