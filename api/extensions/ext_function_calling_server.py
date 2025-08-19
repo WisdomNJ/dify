@@ -284,27 +284,6 @@ class FunctionCallingServer:
             base_url=base_url,
             funcs=biz_funcs
         )
-    #
-    # def get_api_info_test(self, question:str, tenant_id:str, model:str, api_key:str, base_url:str,) -> ( str,str, dict ):
-    #     # 获取所有的问句
-    #     funcs = self.get_related_func(question=question)
-    #     # 分词过滤
-    #     filter_funcs = self.filter_api_info(question=question, funcs=funcs)
-    #
-    #     if len(filter_funcs) == 0:
-    #         filter_funcs = funcs
-    #
-    #     if len(funcs) == 0:
-    #         return None, {}
-    #
-    #     return self.get_api_info_by_model(
-    #         question=question,
-    #         tenant_id=tenant_id,
-    #         model=model,
-    #         api_key=api_key,
-    #         base_url=base_url,
-    #         funcs=filter_funcs
-    #     )
 
 function_calling_instance = FunctionCallingServer()
 

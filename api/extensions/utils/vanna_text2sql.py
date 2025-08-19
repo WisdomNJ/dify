@@ -240,7 +240,7 @@ LEFT JOIN (
     GROUP BY
         rel_src.relname
 ) FK ON FK.source_table = C.TABLE_NAME
-WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
+WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history','flyway_synonyms','flyway_biz_synonym_source')
 """
         return sql
 
@@ -351,7 +351,7 @@ LEFT JOIN (
     GROUP BY
         rel_src.relname
 ) FK ON FK.source_table = C.TABLE_NAME
-WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history')
+WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history','flyway_synonyms','flyway_biz_synonym_source')
 """
         return sql
 

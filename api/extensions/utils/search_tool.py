@@ -576,13 +576,6 @@ def is_all_contains_key_words(query_list : list[str], target_list : list[str] ) 
             break
     return id_contains
 
-    # 过滤包含的key
-    # list_str = filter_contained_strings(list_str=target_list)
-    # if len(list_str) > 0:
-    #     if set(list_str).issubset(set(query_list)):
-    #         return True
-    # return False
-
 def filter_contained_strings(list_str:list[str]):
     result = []
     if list_str:
