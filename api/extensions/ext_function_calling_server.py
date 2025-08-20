@@ -191,7 +191,7 @@ class FunctionCallingServer:
                 }
             }
 
-    def filter_api_info(self, question, funcs):
+    def filter_api_info(self, question, funcs,tenant_id):
         if len(funcs) > 0:
             for func in funcs:
                 word_keys = func["word_keys"]
@@ -207,7 +207,8 @@ class FunctionCallingServer:
                                         target_required=target_required,
                                         target_un_required=target_un_required,
                                         word=word,
-                                        synonym=synonym)
+                                        synonym=synonym,
+                                        tenant_id=tenant_id)
                     if ok:
                         return [func]
         return []
@@ -269,7 +270,7 @@ class FunctionCallingServer:
         # 获取所有的问句
         funcs = self.get_related_func(question=question,tags=tags)
         # 分词过滤
-        biz_funcs = self.filter_api_info(question=question, funcs=funcs)
+        biz_funcs = self.filter_api_info(question=question, funcs=funcs,tenant_id=tenant_id)
         if len(biz_funcs) == 0 and fuzzy_api == "1":
             biz_funcs = funcs
 

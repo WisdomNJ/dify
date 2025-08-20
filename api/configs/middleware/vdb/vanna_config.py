@@ -83,3 +83,7 @@ class VannaConfig(BaseSettings):
         description='vanna 训练向量数据库名称，默认是 vanna_demo',
         default='vanna_demo',
     )
+    SYS_TENANT_ID: int = Field(
+        description='系统租户ID',
+        default=100,
+    )
