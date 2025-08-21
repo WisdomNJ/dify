@@ -803,7 +803,7 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history','flyway_s
                     message_log.append(self.vn.user_message(example["question"]))
                     message_log.append(self.vn.assistant_message(example["sql"]))
 
-        question += f"（仅限 tenant_id = {tenant_id}）"
+        question += f"（主表增加 tenant_id = {tenant_id}）"
         message_log.append(self.vn.user_message(question))
 
         return message_log
