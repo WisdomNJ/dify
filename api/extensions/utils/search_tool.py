@@ -478,7 +478,7 @@ def handle_question(question:str,word_list:list,synonym_dict:dict):
 
 def add_words_ner_by_key_words(key_words:list[str],init_freq:int,synonym_dict:dict,tenant_id:int):
     biz_synonyms = []
-    biz_synonym_dict = get_synonym_dict_by_type(type_='biz', tenant_id=tenant_id);
+    biz_synonym_dict = get_synonym_dict_by_type(type_='biz', tenant_id=tenant_id)
     for word in key_words:
         if word in biz_synonym_dict:
             synonyms = biz_synonym_dict[word]
@@ -540,7 +540,7 @@ def set_synonym_dict(key:str,matches:list[str],synonym_dict:dict):
 
 # 获取同义词，合并自定义的同义词
 def get_synonym_dict(synonym:str):
-    default_synonym_dict = get_synonym_dict_by_type(type_='sys');
+    default_synonym_dict = get_synonym_dict_by_type(type_='sys')
     new_synonym_dict:dict = {
         **default_synonym_dict
     }

@@ -786,8 +786,8 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history','flyway_s
             "4. Please use the most relevant table(s). \n"
             "5. If the question has been asked and answered before, please repeat the answer exactly as it was given before. \n"
             f"6. Ensure that the output SQL is {self.vn.dialect}-compliant and executable, and free of syntax errors. \n"
-            f"7. All main tables in SQL must add the condition tenant_id={tenant_id}. \n" #所有SQL的主表必须增加条件tenant_id=101
-            f"7. 所有生成的SQL的必须增加条件tenant_id={tenant_id}. \n" #所有SQL的主表必须增加条件tenant_id=101
+            # f"7. All main tables in SQL must add the condition tenant_id={tenant_id}. \n" #所有SQL的主表必须增加条件tenant_id=101
+            # f"7. 所有生成的SQL必须增加条件tenant_id={tenant_id}. \n" #所有SQL的主表必须增加条件tenant_id=101
             f"8. The generated SQL must specify the query fields and cannot directly use *. \n" #所有查询必须使用字段，不要使用*
             f"9. 所有查询的字段别名使用中文,日期或时间字段的格式默认使用YYYY-MM-DD. \n" #所有查询必须使用字段，不要使用*
             f"10. 查询时主表且有查询条件的表、汇总表、分组表如果有del字段，必须加上del=0，没有del字段的不要加del=0. \n" #所有查询必须使用字段，不要使用*
@@ -803,6 +803,7 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history','flyway_s
                     message_log.append(self.vn.user_message(example["question"]))
                     message_log.append(self.vn.assistant_message(example["sql"]))
 
+        question += f"（仅限 tenant_id = {tenant_id}）"
         message_log.append(self.vn.user_message(question))
 
         return message_log
@@ -946,7 +947,7 @@ def make_vanna_class(ChatClass=Ollama):
             )
             res = res[0]
             list_ddl = []
-            res = [r for r in res if r["distance"] >= 0.5]
+            res = [r for r in res if r["distance"] >= 0.48]
             for doc in res:
                 print(doc["distance"])
                 list_ddl.append(doc["entity"]["ddl"])
