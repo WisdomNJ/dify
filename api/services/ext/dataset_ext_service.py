@@ -388,6 +388,9 @@ class DocumentExtService:
 
         # 按照分值排序
         max_score_segments = sorted(max_score_segments, key=lambda x: x['score'], reverse=True)
+
+        max_score_segments = max_score_segments[:50]
+
         return max_score_segments
 
     def filter_rows_by_file_ids(search_datas: list[Row], file_ids: str) -> list[Row]:
