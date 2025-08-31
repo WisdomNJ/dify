@@ -822,10 +822,16 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_schema_history','flyway_s
     def run_sql(self, sql):
         return self.vn.run_sql(sql=sql)
 
-    def training_data_export(self):
+    def training_data_export(self,text:str):
+
+        filter = ""
+        if text:
+            filter = f'text like "%{text}%"'
+
         training_data = self.vn.milvus_client.query(
             collection_name="vannasql",
             output_fields=["*"],
+            filter=filter,
             limit=10000,
         )
         result = []

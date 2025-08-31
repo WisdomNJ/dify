@@ -233,15 +233,14 @@ def init_app(app: DifyApp):
     @app.route('/api/training/data/export', methods=['GET'])
     def training_data_export():
         supplier = request.args.get('supplier', "")
-
+        text = request.args.get('text')
         server = get_vn_instance(supplier)
-
         # @lru_cache(maxsize=128)  # 添加缓存机制
         # def cached_get_training_data():
         #     return server.training_data_export()
         # training_data = cached_get_training_data()
 
-        data = server.training_data_export()
+        data = server.training_data_export(text=text)
         content = ",\n".join(str(line) for line in data)
 
         file_name = datetime.now().strftime('%Y-%m-%d-%H-%M')
