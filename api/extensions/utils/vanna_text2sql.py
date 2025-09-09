@@ -777,6 +777,9 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_table_classify','flyway_s
         initial_prompt = self.vn.add_documentation_to_prompt(
             initial_prompt, doc_list, max_tokens=self.vn.max_tokens
         )
+        from datetime import date
+        # 获取今天的日期
+        today = date.today()
 
         initial_prompt += (
             "===Response Guidelines \n"
@@ -788,6 +791,8 @@ WHERE C.TABLE_NAME NOT IN ('flyway_table_dict','flyway_table_classify','flyway_s
             f"6. Ensure that the output SQL is {self.vn.dialect}-compliant and executable, and free of syntax errors. \n"
             # f"7. All main tables in SQL must add the condition tenant_id={tenant_id}. \n" #所有SQL的主表必须增加条件tenant_id=101
             # f"7. 所有生成的SQL必须增加条件tenant_id={tenant_id}. \n" #所有SQL的主表必须增加条件tenant_id=101
+            f"6. 如果涉及当前日期，SQL使用：CURRENT_DATE作为条件判断，当前月份：EXTRACT(MONTH FROM CURRENT_DATE)，当前年： EXTRACT(YEAR FROM CURRENT_DATE) \n"
+            f"7. 今天日期：{today}. \n"
             f"8. The generated SQL must specify the query fields and cannot directly use *. \n" #所有查询必须使用字段，不要使用*
             f"9. 所有查询的字段别名使用中文,日期或时间字段的格式默认使用YYYY-MM-DD. \n" #所有查询必须使用字段，不要使用*
             f"10. 查询时主表且有查询条件的表、汇总表、分组表如果有del字段，必须加上del=0，没有del字段的不要加del=0. \n" #所有查询必须使用字段，不要使用*
